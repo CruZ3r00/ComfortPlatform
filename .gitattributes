@@ -1,0 +1,3 @@
+# Il runner confronta lo sha256 dei byte dei file SQL: fine riga fissa su ogni sistema,
+# altrimenti un checkout su Windows farebbe risultare modificate le migrazioni applicate.
+*.sql text eol=lf

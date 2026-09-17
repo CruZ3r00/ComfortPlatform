@@ -70,6 +70,22 @@ test('schema logistics: solo cl_app crea e legge; l\'amministratore non eredita 
   assert.deepEqual(rows[0], { public_usage: false, sanity: true })
 })
 
+test('schema account: solo cs_account crea e legge; l\'amministratore non eredita i dati dell\'account', async () => {
+  const { rows: created } = await clients.cs_account.query(
+    "select c.relowner::regrole::text as owner from pg_class c where c.oid = 'account.persons'::regclass"
+  )
+  assert.deepEqual(created, [{ owner: 'cs_account' }])
+  for (const role of ['ct_app', 'cs_site', 'cl_app']) {
+    await assert.rejects(clients[role].query('create table account.intrusa (id int)'), denied, `${role} crea in account`)
+    await assert.rejects(clients[role].query('select * from account.persons'), denied, `${role} legge account`)
+  }
+  await assert.rejects(platform.admin.query('select * from account.persons'), denied)
+  const { rows } = await platform.superuser.query(
+    "select has_schema_privilege('public', 'account', 'USAGE') as public_usage, has_schema_privilege('public', 'account', 'CREATE') as public_create"
+  )
+  assert.deepEqual(rows[0], { public_usage: false, public_create: false })
+})
+
 test('cs_site non legge account', async () => {
   await assert.rejects(clients.cs_site.query('select * from account.persons'), denied)
 })

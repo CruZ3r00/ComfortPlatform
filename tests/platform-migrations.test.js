@@ -19,7 +19,8 @@ const FILES = [
   '0003_bus.sql',
   '0004_pg_cron.sql',
   '0005_bus_contract_v1.sql',
-  '0006_logistics_schema.sql'
+  '0006_logistics_schema.sql',
+  '0007_account_schema.sql'
 ]
 const PLATFORM_ROLES = ['platform_admin', 'ct_app', 'cs_site', 'cs_account', 'cl_app']
 const BUS_APPS = ['ct_app', 'cs_account', 'cl_app']
@@ -95,7 +96,7 @@ async function snapshot() {
       [PLATFORM_ROLES]
     ),
     schemas: await query(
-      "select nspname::text, nspowner::regrole::text, nspacl::text from pg_namespace where nspname in ('bus', 'logistics', 'platform') order by 1"
+      "select nspname::text, nspowner::regrole::text, nspacl::text from pg_namespace where nspname in ('account', 'bus', 'logistics', 'platform') order by 1"
     ),
     relations: await query(
       `select c.relname::text, c.relkind::text, c.relowner::regrole::text, c.relacl::text, c.relrowsecurity
@@ -161,6 +162,7 @@ test('apply come amministratore non superutente: ruoli, proprieta\', permessi, j
 
   // Tutto cio' che sta in bus e platform appartiene a platform_admin; RLS su ogni tabella.
   assert.deepEqual(state.schemas.map((s) => [s.nspname, s.nspowner]), [
+    ['account', 'cs_account'],
     ['bus', 'platform_admin'],
     ['logistics', 'cl_app'],
     ['platform', 'platform_admin']
@@ -258,6 +260,18 @@ test('apply come amministratore non superutente: ruoli, proprieta\', permessi, j
     state.memberships.find((m) => m.role === 'cl_app' && m.member === server.admin.user && m.set_option),
     { role: 'cl_app', member: server.admin.user, admin_option: false, inherit_option: false, set_option: true }
   )
+  // Schema account: di cs_account, nulla a PUBLIC (schema e funzioni future); l'amministratore ha SET su cs_account
+  // ma non ne eredita i permessi (credenziali e sessioni).
+  const account = state.schemas.find((s) => s.nspname === 'account')
+  assert.equal(/(^|[{,])=/.test(account.nspacl ?? ''), false)
+  assert.deepEqual(
+    state.memberships.find((m) => m.role === 'cs_account' && m.member === server.admin.user && m.set_option),
+    { role: 'cs_account', member: server.admin.user, admin_option: false, inherit_option: false, set_option: true }
+  )
+  assert.deepEqual(
+    state.defaultAcl.filter((acl) => acl.defaclrole === 'cs_account').map((acl) => [acl.defaclnamespace, acl.defaclobjtype, acl.defaclacl]),
+    [[0, 'f', '{cs_account=X/cs_account}']]
+  )
   assert.deepEqual(
     state.jobs,
     JOBS.map((job) => ({ ...job, username: server.admin.user, database: db.name, active: true }))
@@ -279,6 +293,13 @@ test('secondo apply vuoto; 0002-0004 rieseguite convergono senza cambiare nulla'
   await admin.query('drop function bus.status()')
   await admin.query('revoke execute on function bus.next() from cl_app')
   await runInTransaction(admin, sql('0003_bus.sql'))
+  assert.deepEqual(await snapshot(), before)
+
+  // Schema account con permessi a PUBLIC aggiunti fuori dalle migrazioni: 0007 rieseguita li toglie.
+  await superuser.query('grant usage, create on schema account to public')
+  await superuser.query('alter default privileges for role cs_account grant execute on functions to public')
+  assert.notDeepEqual(await snapshot(), before)
+  await runInTransaction(admin, sql('0007_account_schema.sql'))
   assert.deepEqual(await snapshot(), before)
 
   // Un utente con login impostato dal runner resta tale se 0002 viene rieseguita.
@@ -359,6 +380,24 @@ test('0006 con uno schema logistics di un altro proprietario: stop senza toccarl
   assert.equal(rows[0].owner, 'postgres')
   const { rows: registry } = await client.query('select name from platform.migrations order by name')
   assert.deepEqual(registry.map((r) => r.name), FILES.slice(0, 5))
+})
+
+test('0007 con uno schema account di un altro proprietario: stop senza toccarlo', async (t) => {
+  const other = await startPostgres()
+  t.after(() => other.stop())
+  const otherDb = other.database(other.cronDatabase)
+  const root = await otherDb.connect()
+  await root.query('create schema account')
+  const client = await otherDb.connectAdmin()
+
+  await assert.rejects(apply({ client, dir: MIGRATIONS_DIR }), (err) => {
+    assert.match(err.message, /^0007_account_schema\.sql fallita.*: Lo schema account esiste gia' con proprietario postgres: migrazione fermata\. \(SQLSTATE 55000\)/)
+    return true
+  })
+  const { rows } = await root.query("select nspowner::regrole::text as owner, nspacl::text as acl from pg_namespace where nspname = 'account'")
+  assert.deepEqual(rows, [{ owner: 'postgres', acl: null }])
+  const { rows: registry } = await client.query('select name from platform.migrations order by name')
+  assert.deepEqual(registry.map((r) => r.name), FILES.slice(0, 6))
 })
 
 test('cluster senza pg_cron precaricata, o amministratore che non legge le impostazioni: errore chiaro', async (t) => {

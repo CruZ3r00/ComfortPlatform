@@ -34,11 +34,11 @@ function poolerLikeSession(config) {
 /**
  * Schemi applicativi come li creeranno le loro migrazioni (§14.1, §14.3, §14.4, ADR-0015), che non
  * fanno parte di questa sessione: fixture del superutente. Ogni app ne e' proprietaria.
+ * `account` non c'e': lo crea 0007, e i test lo devono trovare cosi' com'e' uscito dalla migrazione.
  */
 async function createAppSchemas(platform) {
   await platform.superuser.query(`
     create schema if not exists tables authorization ct_app;
-    create schema if not exists account authorization cs_account;
     create schema if not exists logistics authorization cl_app;`)
 }
 

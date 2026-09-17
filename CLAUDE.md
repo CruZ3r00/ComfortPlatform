@@ -71,6 +71,9 @@ JavaScript **CommonJS senza build** (importabile da Strapi CJS e dai backend Fas
 **Stato** (2026-09-17):
 - sessioni 1-3: runner, prove tecniche su staging, utenti applicativi, schema `bus`, job `pg_cron`;
 - sessione 4: contratto v1 (21 argomenti), libreria `bus/client`, schema `logistics`, kit `testing/`;
+- sessione 5 (account ComfortService, sessione A di ComfortService): `0007` schema `account` di `cs_account`, versione
+  0.3.0. Le tabelle dell'account le crea ComfortService (`backend/migrations/account/`) come `cs_account`. Su staging
+  non ancora applicata;
 - **staging**: migrazioni 0001-0006 applicate il 2026-09-17 (backup prima in `~/backups/comfort/`); `cl_app` con
   login, password in `~/.config/comfortplatform/staging/cl_app.password`; libreria provata sui pooler reali (dettagli
   in `todo.md`, sessione 4);
@@ -81,7 +84,7 @@ JavaScript **CommonJS senza build** (importabile da Strapi CJS e dai backend Fas
 
 | Cartella | Contenuto |
 |---|---|
-| `db/migrations/` | SQL di piattaforma `NNNN_nome.sql`, applicato dall'amministratore per ogni ambiente: `0001` registro, `0002` utenti, `0003` bus, `0004` job `pg_cron`, `0005` contratto v1, `0006` schema `logistics` |
+| `db/migrations/` | SQL di piattaforma `NNNN_nome.sql`, applicato dall'amministratore per ogni ambiente: `0001` registro, `0002` utenti, `0003` bus, `0004` job `pg_cron`, `0005` contratto v1, `0006` schema `logistics`, `0007` schema `account` |
 | `db/runner/` | runner: `files.js` (nomi, checksum), `config.js` (variabili d'ambiente), `runner.js` (registro, piano, `inspect`, `apply`), `roles.js` (`setLogin`, `disableLogin`), `scram.js` (verificatore SCRAM), `cli.js` |
 | `db/probes/` | prove tecniche su Supabase (search_path sul pooler, `session_user`, LISTEN/NOTIFY) con oggetti `probe_` creati ed eliminati a ogni esecuzione; da ripetere prima di ogni replica in un nuovo ambiente |
 | `bus/contract/` | contratto v1: `catalog.json` (fonte unica degli argomenti), `common.schema.json`, `<argomento>/v<N>.schema.json`, `index.js` (validazione Ajv). Export `comfort-platform/contract`. Regole in `bus/contract/README.md` |
@@ -112,7 +115,7 @@ JavaScript **CommonJS senza build** (importabile da Strapi CJS e dai backend Fas
 - **Utenti**: creati `nologin` senza password. **Mai `PASSWORD` nei file SQL** (`log_statement = ddl` su Supabase): login e password solo con `db:role-login`.
 - **Amministratore non superutente**: ogni migrazione deve funzionare con CREATEROLE senza SUPERUSER, come `postgres` su Supabase; i test la applicano cosi'. Estensioni non "trusted" (es. `pg_cron`) solo tramite supautils su Supabase.
 - **Argomenti e iscrizioni del bus**: nuova migrazione (`insert … on conflict do nothing` come amministratore), **identica a `bus/contract/catalog.json`** (verificato da `tests/platform-migrations.test.js`). Le iscrizioni di un'app si registrano quando l'app si integra.
-- **Schemi applicativi**: `create schema … authorization <utente>`; permessi, default privileges e commento dentro `set local role <utente>`, perche' l'amministratore ha SET ma non INHERIT sugli utenti applicativi (0006). RLS sulle tabelle: la attivano le migration dell'app.
+- **Schemi applicativi**: `create schema … authorization <utente>`; permessi, default privileges e commento dentro `set local role <utente>`, perche' l'amministratore ha SET ma non INHERIT sugli utenti applicativi (0006 `logistics`, 0007 `account`). Uno schema gia' presente con un altro proprietario ferma la migrazione. RLS sulle tabelle: la attivano le migration dell'app.
 - **Prima di applicare** su staging o produzione: backup completo e `dry-run` (ADR-0014 §14.5).
 - `.gitattributes` fissa `eol=lf` sui `.sql`: il checksum è calcolato sui byte.
 

@@ -1,0 +1,18 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:comfort-platform:bus:logistics.link_changed:v1",
+  "title": "logistics.link_changed v1",
+  "description": "Collegamento ComforTables - ComfortLogistics attivato o disattivato (ADR-0015 §15.4)",
+  "type": "object",
+  "required": [
+    "status"
+  ],
+  "properties": {
+    "status": {
+      "enum": [
+        "active",
+        "inactive"
+      ]
+    }
+  }
+}

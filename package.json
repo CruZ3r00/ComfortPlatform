@@ -1,9 +1,19 @@
 {
   "name": "comfort-platform",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": true,
   "description": "Codice di piattaforma ComfortService: migrazioni di piattaforma, bus di messaggi, contratto e migrazioni dati (ADR-0014).",
   "type": "commonjs",
+  "main": "bus/client/index.js",
+  "exports": {
+    ".": "./bus/client/index.js",
+    "./contract": "./bus/contract/index.js",
+    "./testing": "./testing/index.js",
+    "./package.json": "./package.json"
+  },
+  "bin": {
+    "comfort-platform": "db/runner/cli.js"
+  },
   "engines": {
     "node": ">=20.19"
   },
@@ -12,9 +22,14 @@
     "lint": "eslint .",
     "db:list": "node db/runner/cli.js list",
     "db:dry-run": "node db/runner/cli.js dry-run",
-    "db:apply": "node db/runner/cli.js apply"
+    "db:apply": "node db/runner/cli.js apply",
+    "db:role-login": "node db/runner/cli.js role-login",
+    "db:role-disable": "node db/runner/cli.js role-disable",
+    "db:probe": "node db/probes/cli.js"
   },
   "dependencies": {
+    "ajv": "^8.20.0",
+    "ajv-formats": "^3.0.1",
     "pg": "^8.23.0"
   },
   "devDependencies": {

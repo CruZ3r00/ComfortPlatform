@@ -1,0 +1,75 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:comfort-platform:bus:account.entitlements_changed:v1",
+  "title": "account.entitlements_changed v1",
+  "description": "Diritti dell'organizzazione cambiati: attivazione, cambio piano, rinnovo, pagamento fallito, disdetta (ADR-0013 §13.7)",
+  "type": "object",
+  "required": [
+    "version",
+    "active",
+    "plan_code",
+    "period_end",
+    "products",
+    "feature_selections"
+  ],
+  "properties": {
+    "version": {
+      "$ref": "urn:comfort-platform:bus:common#/$defs/version"
+    },
+    "active": {
+      "type": "boolean"
+    },
+    "plan_code": {
+      "anyOf": [
+        {
+          "$ref": "urn:comfort-platform:bus:common#/$defs/text"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "period_end": {
+      "anyOf": [
+        {
+          "$ref": "urn:comfort-platform:bus:common#/$defs/dateTime"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "products": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "product",
+          "config"
+        ],
+        "properties": {
+          "product": {
+            "enum": [
+              "comfortables",
+              "logistics",
+              "rooms"
+            ]
+          },
+          "config": {
+            "type": "object"
+          }
+        }
+      },
+      "minItems": 0,
+      "maxItems": 10
+    },
+    "feature_selections": {
+      "type": "array",
+      "items": {
+        "$ref": "urn:comfort-platform:bus:common#/$defs/text"
+      },
+      "minItems": 0,
+      "maxItems": 50
+    }
+  }
+}

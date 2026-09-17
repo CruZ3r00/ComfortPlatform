@@ -1,0 +1,19 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:comfort-platform:bus:account.session_ended:v1",
+  "title": "account.session_ended v1",
+  "description": "Logout o sessione revocata nell'account (ADR-0013 §13.3)",
+  "type": "object",
+  "required": [
+    "person_id",
+    "session_id"
+  ],
+  "properties": {
+    "person_id": {
+      "$ref": "urn:comfort-platform:bus:common#/$defs/uuid"
+    },
+    "session_id": {
+      "$ref": "urn:comfort-platform:bus:common#/$defs/ref"
+    }
+  }
+}

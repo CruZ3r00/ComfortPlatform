@@ -1,0 +1,46 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:comfort-platform:bus:account.organization_changed:v1",
+  "title": "account.organization_changed v1",
+  "description": "Organizzazione modificata o cancellata (piano 0007 §3.10.4)",
+  "type": "object",
+  "required": [
+    "legal_name",
+    "vat_number",
+    "deleted_at"
+  ],
+  "properties": {
+    "legal_name": {
+      "anyOf": [
+        {
+          "$ref": "urn:comfort-platform:bus:common#/$defs/text"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "vat_number": {
+      "anyOf": [
+        {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 32
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "deleted_at": {
+      "anyOf": [
+        {
+          "$ref": "urn:comfort-platform:bus:common#/$defs/dateTime"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    }
+  }
+}

@@ -1,0 +1,478 @@
+{
+  "description": "Catalogo v1 del bus (ADR-0014 §14.8, piano 0007 §3.10.4). Fonte unica: la migrazione 0005 lo registra, un test lo verifica.",
+  "topics": [
+    {
+      "name": "tables.catalog.dish_changed",
+      "producer": "comfortables",
+      "description": "Piatto o bevanda creato, modificato o archiviato in ComforTables (ADR-0015 §15.4)",
+      "sensitive": false,
+      "retention_days": 30,
+      "versions": [
+        1
+      ],
+      "entity": {
+        "prefix": "dish",
+        "field": "dish_ref"
+      },
+      "entity_version": "version",
+      "request_id": "forbidden",
+      "recipients": [
+        "logistics"
+      ],
+      "subscribers": [
+        {
+          "app": "logistics",
+          "schema_version": 1
+        }
+      ]
+    },
+    {
+      "name": "tables.catalog.ingredient_changed",
+      "producer": "comfortables",
+      "description": "Ingrediente del menu creato, modificato o archiviato in ComforTables (ADR-0015 §15.4)",
+      "sensitive": false,
+      "retention_days": 30,
+      "versions": [
+        1
+      ],
+      "entity": {
+        "prefix": "ingredient",
+        "field": "ingredient_ref"
+      },
+      "entity_version": "version",
+      "request_id": "forbidden",
+      "recipients": [
+        "logistics"
+      ],
+      "subscribers": [
+        {
+          "app": "logistics",
+          "schema_version": 1
+        }
+      ]
+    },
+    {
+      "name": "tables.catalog.snapshot",
+      "producer": "comfortables",
+      "description": "Blocco del catalogo completo, risposta a logistics.catalog.snapshot_requested (stesso request_id)",
+      "sensitive": false,
+      "retention_days": 30,
+      "versions": [
+        1
+      ],
+      "entity": {
+        "prefix": "catalog",
+        "organization": true
+      },
+      "entity_version": null,
+      "request_id": "required",
+      "recipients": [
+        "logistics"
+      ],
+      "subscribers": [
+        {
+          "app": "logistics",
+          "schema_version": 1
+        }
+      ]
+    },
+    {
+      "name": "tables.sales.item_served",
+      "producer": "comfortables",
+      "description": "Item servito, ritirato o risolto 'served' al checkout, anche dal replay offline (ADR-0015 §15.6). L'ora del servizio e' occurred_at del messaggio",
+      "sensitive": false,
+      "retention_days": 30,
+      "versions": [
+        1
+      ],
+      "entity": {
+        "prefix": "item",
+        "field": "item_ref"
+      },
+      "entity_version": null,
+      "request_id": "forbidden",
+      "recipients": [
+        "logistics"
+      ],
+      "subscribers": [
+        {
+          "app": "logistics",
+          "schema_version": 1
+        }
+      ]
+    },
+    {
+      "name": "tables.sales.item_voided",
+      "producer": "comfortables",
+      "description": "Item annullato o risolto 'waste' / 'not_prepared' al checkout (ADR-0015 §15.6)",
+      "sensitive": false,
+      "retention_days": 30,
+      "versions": [
+        1
+      ],
+      "entity": {
+        "prefix": "item",
+        "field": "item_ref"
+      },
+      "entity_version": null,
+      "request_id": "forbidden",
+      "recipients": [
+        "logistics"
+      ],
+      "subscribers": [
+        {
+          "app": "logistics",
+          "schema_version": 1
+        }
+      ]
+    },
+    {
+      "name": "tables.bar.reload_done",
+      "producer": "comfortables",
+      "description": "Carico fatto del bar: bevande servite nel turno (ADR-0015 §15.6)",
+      "sensitive": false,
+      "retention_days": 30,
+      "versions": [
+        1
+      ],
+      "entity": {
+        "prefix": "shift",
+        "field": "shift_ref"
+      },
+      "entity_version": null,
+      "request_id": "forbidden",
+      "recipients": [
+        "logistics"
+      ],
+      "subscribers": [
+        {
+          "app": "logistics",
+          "schema_version": 1
+        }
+      ]
+    },
+    {
+      "name": "tables.bar.preview_requested",
+      "producer": "comfortables",
+      "description": "Richiesta del dettaglio ml e bottiglie per il riepilogo bar (ADR-0015 §15.6)",
+      "sensitive": false,
+      "retention_days": 30,
+      "versions": [
+        1
+      ],
+      "entity": null,
+      "entity_version": null,
+      "request_id": "required",
+      "recipients": [
+        "logistics"
+      ],
+      "subscribers": [
+        {
+          "app": "logistics",
+          "schema_version": 1
+        }
+      ]
+    },
+    {
+      "name": "tables.alerts.acknowledge_requested",
+      "producer": "comfortables",
+      "description": "'Archivia' nella barra degli alert di ComforTables (ADR-0015 §15.9)",
+      "sensitive": false,
+      "retention_days": 30,
+      "versions": [
+        1
+      ],
+      "entity": null,
+      "entity_version": null,
+      "request_id": "forbidden",
+      "recipients": [
+        "logistics"
+      ],
+      "subscribers": [
+        {
+          "app": "logistics",
+          "schema_version": 1
+        }
+      ]
+    },
+    {
+      "name": "logistics.link_changed",
+      "producer": "logistics",
+      "description": "Collegamento ComforTables - ComfortLogistics attivato o disattivato (ADR-0015 §15.4)",
+      "sensitive": false,
+      "retention_days": 30,
+      "versions": [
+        1
+      ],
+      "entity": {
+        "prefix": "link",
+        "organization": true
+      },
+      "entity_version": null,
+      "request_id": "forbidden",
+      "recipients": [
+        "comfortables"
+      ],
+      "subscribers": []
+    },
+    {
+      "name": "logistics.catalog.snapshot_requested",
+      "producer": "logistics",
+      "description": "Tasto 'Importa da ComforTables': richiesta del catalogo completo (ADR-0015 §15.4)",
+      "sensitive": false,
+      "retention_days": 30,
+      "versions": [
+        1
+      ],
+      "entity": null,
+      "entity_version": null,
+      "request_id": "required",
+      "recipients": [
+        "comfortables"
+      ],
+      "subscribers": []
+    },
+    {
+      "name": "logistics.availability.changed",
+      "producer": "logistics",
+      "description": "Disponibilita' di piatti e ingredienti del menu cambiata (ADR-0015 §15.8)",
+      "sensitive": false,
+      "retention_days": 30,
+      "versions": [
+        1
+      ],
+      "entity": {
+        "prefix": "availability",
+        "organization": true
+      },
+      "entity_version": "version",
+      "request_id": "forbidden",
+      "recipients": [
+        "comfortables"
+      ],
+      "subscribers": []
+    },
+    {
+      "name": "logistics.alerts.updated",
+      "producer": "logistics",
+      "description": "Alert non archiviati per la proiezione e il campanello di ComforTables (ADR-0015 §15.9)",
+      "sensitive": false,
+      "retention_days": 30,
+      "versions": [
+        1
+      ],
+      "entity": {
+        "prefix": "alerts",
+        "organization": true
+      },
+      "entity_version": "version",
+      "request_id": "forbidden",
+      "recipients": [
+        "comfortables"
+      ],
+      "subscribers": []
+    },
+    {
+      "name": "logistics.bar.preview_ready",
+      "producer": "logistics",
+      "description": "Dettaglio ml e bottiglie, risposta a tables.bar.preview_requested (stesso request_id)",
+      "sensitive": false,
+      "retention_days": 30,
+      "versions": [
+        1
+      ],
+      "entity": null,
+      "entity_version": null,
+      "request_id": "required",
+      "recipients": [
+        "comfortables"
+      ],
+      "subscribers": []
+    },
+    {
+      "name": "logistics.notifications.email_requested",
+      "producer": "logistics",
+      "description": "Email di alert che ComfortLogistics invia a se stesso, per avere retry e avvisi del bus (ADR-0015 §15.9)",
+      "sensitive": false,
+      "retention_days": 30,
+      "versions": [
+        1
+      ],
+      "entity": null,
+      "entity_version": null,
+      "request_id": "forbidden",
+      "recipients": [
+        "logistics"
+      ],
+      "subscribers": [
+        {
+          "app": "logistics",
+          "schema_version": 1
+        }
+      ]
+    },
+    {
+      "name": "account.provisioning_requested",
+      "producer": "account",
+      "description": "Piano con ComforTables attivato: creazione dell'organizzazione in ComforTables (ADR-0013 §13.8)",
+      "sensitive": true,
+      "retention_days": 30,
+      "versions": [
+        1
+      ],
+      "entity": {
+        "prefix": "organization",
+        "organization": true
+      },
+      "entity_version": null,
+      "request_id": "forbidden",
+      "recipients": [
+        "comfortables"
+      ],
+      "subscribers": []
+    },
+    {
+      "name": "account.entitlements_changed",
+      "producer": "account",
+      "description": "Diritti dell'organizzazione cambiati: attivazione, cambio piano, rinnovo, pagamento fallito, disdetta (ADR-0013 §13.7)",
+      "sensitive": false,
+      "retention_days": 30,
+      "versions": [
+        1
+      ],
+      "entity": {
+        "prefix": "organization",
+        "organization": true
+      },
+      "entity_version": "version",
+      "request_id": "forbidden",
+      "recipients": [
+        "comfortables",
+        "logistics"
+      ],
+      "subscribers": [
+        {
+          "app": "logistics",
+          "schema_version": 1
+        }
+      ]
+    },
+    {
+      "name": "account.password_changed",
+      "producer": "account",
+      "description": "Password del titolare cambiata: hash predefinito dello staff (ADR-0013 §13.8)",
+      "sensitive": true,
+      "retention_days": 30,
+      "versions": [
+        1
+      ],
+      "entity": {
+        "prefix": "person",
+        "field": "person_id"
+      },
+      "entity_version": null,
+      "request_id": "forbidden",
+      "recipients": [
+        "comfortables"
+      ],
+      "subscribers": []
+    },
+    {
+      "name": "account.organization_changed",
+      "producer": "account",
+      "description": "Organizzazione modificata o cancellata (piano 0007 §3.10.4)",
+      "sensitive": false,
+      "retention_days": 30,
+      "versions": [
+        1
+      ],
+      "entity": {
+        "prefix": "organization",
+        "organization": true
+      },
+      "entity_version": null,
+      "request_id": "forbidden",
+      "recipients": [
+        "comfortables",
+        "logistics"
+      ],
+      "subscribers": [
+        {
+          "app": "logistics",
+          "schema_version": 1
+        }
+      ]
+    },
+    {
+      "name": "account.session_ended",
+      "producer": "account",
+      "description": "Logout o sessione revocata nell'account (ADR-0013 §13.3)",
+      "sensitive": false,
+      "retention_days": 30,
+      "versions": [
+        1
+      ],
+      "entity": null,
+      "entity_version": null,
+      "request_id": "forbidden",
+      "recipients": [
+        "comfortables",
+        "logistics"
+      ],
+      "subscribers": [
+        {
+          "app": "logistics",
+          "schema_version": 1
+        }
+      ]
+    },
+    {
+      "name": "account.person_changed",
+      "producer": "account",
+      "description": "Email o nome del titolare cambiati (ADR-0013 §13.4)",
+      "sensitive": false,
+      "retention_days": 30,
+      "versions": [
+        1
+      ],
+      "entity": {
+        "prefix": "person",
+        "field": "person_id"
+      },
+      "entity_version": null,
+      "request_id": "forbidden",
+      "recipients": [
+        "comfortables",
+        "logistics"
+      ],
+      "subscribers": [
+        {
+          "app": "logistics",
+          "schema_version": 1
+        }
+      ]
+    },
+    {
+      "name": "platform.clock.daily",
+      "producer": "platform",
+      "description": "Orologio giornaliero alle 02:00 UTC, pubblicato da pg_cron (ADR-0014 §14.7)",
+      "sensitive": false,
+      "retention_days": 30,
+      "versions": [
+        1
+      ],
+      "entity": null,
+      "entity_version": null,
+      "request_id": "forbidden",
+      "recipients": [
+        "logistics"
+      ],
+      "subscribers": [
+        {
+          "app": "logistics",
+          "schema_version": 1
+        }
+      ]
+    }
+  ]
+}

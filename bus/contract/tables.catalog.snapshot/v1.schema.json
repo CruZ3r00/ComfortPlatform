@@ -1,0 +1,39 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:comfort-platform:bus:tables.catalog.snapshot:v1",
+  "title": "tables.catalog.snapshot v1",
+  "description": "Blocco del catalogo completo, risposta a logistics.catalog.snapshot_requested (stesso request_id)",
+  "type": "object",
+  "required": [
+    "chunk_index",
+    "chunk_count",
+    "dishes",
+    "ingredients"
+  ],
+  "properties": {
+    "chunk_index": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "chunk_count": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "dishes": {
+      "type": "array",
+      "items": {
+        "$ref": "urn:comfort-platform:bus:common#/$defs/dish"
+      },
+      "minItems": 0,
+      "maxItems": 500
+    },
+    "ingredients": {
+      "type": "array",
+      "items": {
+        "$ref": "urn:comfort-platform:bus:common#/$defs/ingredient"
+      },
+      "minItems": 0,
+      "maxItems": 500
+    }
+  }
+}

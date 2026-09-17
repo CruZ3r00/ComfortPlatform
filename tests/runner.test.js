@@ -7,7 +7,7 @@ const { createHash } = require('node:crypto')
 const fs = require('node:fs')
 const os = require('node:os')
 const path = require('node:path')
-const { startPostgres } = require('./helpers/postgres')
+const { startPostgres } = require('../testing')
 const { apply, inspect } = require('../db/runner/runner')
 
 const ROOT = path.resolve(__dirname, '..')
@@ -332,7 +332,10 @@ test('parita\' del registro: quello creato dal runner e quello di 0001 sono iden
 })
 
 test('CLI: list, dry-run e apply con la connessione dalle variabili d\'ambiente', async (t) => {
-  const { db, client } = await freshDatabase(t)
+  // Le migrazioni reali comprendono 0004 (pg_cron): vanno nel database di pg_cron.
+  const db = server.database(server.cronDatabase)
+  const client = await db.connect()
+  t.after(() => client.end())
   const files = fs.readdirSync(MIGRATIONS_DIR).filter((name) => name.endsWith('.sql')).sort()
   const password = server.connection.password
   const variables = {

@@ -1,0 +1,65 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:comfort-platform:bus:logistics.availability.changed:v1",
+  "title": "logistics.availability.changed v1",
+  "description": "Disponibilita' di piatti e ingredienti del menu cambiata (ADR-0015 §15.8)",
+  "type": "object",
+  "required": [
+    "dishes",
+    "menu_ingredients",
+    "reason",
+    "version"
+  ],
+  "properties": {
+    "dishes": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "dish_ref",
+          "available"
+        ],
+        "properties": {
+          "dish_ref": {
+            "$ref": "urn:comfort-platform:bus:common#/$defs/ref"
+          },
+          "available": {
+            "type": "boolean"
+          }
+        }
+      },
+      "minItems": 0,
+      "maxItems": 5000
+    },
+    "menu_ingredients": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "ingredient_ref",
+          "available",
+          "in_stock"
+        ],
+        "properties": {
+          "ingredient_ref": {
+            "$ref": "urn:comfort-platform:bus:common#/$defs/ref"
+          },
+          "available": {
+            "type": "boolean"
+          },
+          "in_stock": {
+            "type": "boolean"
+          }
+        }
+      },
+      "minItems": 0,
+      "maxItems": 5000
+    },
+    "reason": {
+      "$ref": "urn:comfort-platform:bus:common#/$defs/text"
+    },
+    "version": {
+      "$ref": "urn:comfort-platform:bus:common#/$defs/version"
+    }
+  }
+}

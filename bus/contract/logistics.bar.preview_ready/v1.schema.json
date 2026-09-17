@@ -1,0 +1,78 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:comfort-platform:bus:logistics.bar.preview_ready:v1",
+  "title": "logistics.bar.preview_ready v1",
+  "description": "Dettaglio ml e bottiglie, risposta a tables.bar.preview_requested (stesso request_id)",
+  "type": "object",
+  "required": [
+    "shift_ref",
+    "articles"
+  ],
+  "properties": {
+    "shift_ref": {
+      "$ref": "urn:comfort-platform:bus:common#/$defs/ref"
+    },
+    "articles": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "article_ref",
+          "name",
+          "quantity",
+          "unit",
+          "pack_size",
+          "pack_label",
+          "packs_opened"
+        ],
+        "properties": {
+          "article_ref": {
+            "$ref": "urn:comfort-platform:bus:common#/$defs/ref"
+          },
+          "name": {
+            "$ref": "urn:comfort-platform:bus:common#/$defs/text"
+          },
+          "quantity": {
+            "$ref": "urn:comfort-platform:bus:common#/$defs/amount"
+          },
+          "unit": {
+            "$ref": "urn:comfort-platform:bus:common#/$defs/unit"
+          },
+          "pack_size": {
+            "anyOf": [
+              {
+                "$ref": "urn:comfort-platform:bus:common#/$defs/amount"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "pack_label": {
+            "anyOf": [
+              {
+                "$ref": "urn:comfort-platform:bus:common#/$defs/text"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "packs_opened": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": 0
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        }
+      },
+      "minItems": 0,
+      "maxItems": 1000
+    }
+  }
+}

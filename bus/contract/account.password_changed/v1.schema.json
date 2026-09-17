@@ -1,0 +1,19 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:comfort-platform:bus:account.password_changed:v1",
+  "title": "account.password_changed v1",
+  "description": "Password del titolare cambiata: hash predefinito dello staff (ADR-0013 §13.8)",
+  "type": "object",
+  "required": [
+    "person_id",
+    "staff_default_password_hash"
+  ],
+  "properties": {
+    "person_id": {
+      "$ref": "urn:comfort-platform:bus:common#/$defs/uuid"
+    },
+    "staff_default_password_hash": {
+      "$ref": "urn:comfort-platform:bus:common#/$defs/jwe"
+    }
+  }
+}

@@ -1,0 +1,7 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:comfort-platform:bus:tables.catalog.ingredient_changed:v1",
+  "title": "tables.catalog.ingredient_changed v1",
+  "description": "Ingrediente del menu creato, modificato o archiviato in ComforTables (ADR-0015 §15.4)",
+  "$ref": "urn:comfort-platform:bus:common#/$defs/ingredient"
+}

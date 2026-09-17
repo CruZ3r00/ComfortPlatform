@@ -1,0 +1,93 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:comfort-platform:bus:tables.sales.item_served:v1",
+  "title": "tables.sales.item_served v1",
+  "description": "Item servito, ritirato o risolto 'served' al checkout, anche dal replay offline (ADR-0015 §15.6). L'ora del servizio e' occurred_at del messaggio",
+  "type": "object",
+  "required": [
+    "item_ref",
+    "order_ref",
+    "dish_ref",
+    "freeform_name",
+    "quantity",
+    "is_beverage",
+    "removed_ingredient_refs",
+    "addon_ingredient_refs",
+    "service_type"
+  ],
+  "properties": {
+    "item_ref": {
+      "$ref": "urn:comfort-platform:bus:common#/$defs/ref"
+    },
+    "order_ref": {
+      "$ref": "urn:comfort-platform:bus:common#/$defs/ref"
+    },
+    "dish_ref": {
+      "anyOf": [
+        {
+          "$ref": "urn:comfort-platform:bus:common#/$defs/ref"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "freeform_name": {
+      "anyOf": [
+        {
+          "$ref": "urn:comfort-platform:bus:common#/$defs/text"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "quantity": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "is_beverage": {
+      "type": "boolean"
+    },
+    "removed_ingredient_refs": {
+      "type": "array",
+      "items": {
+        "$ref": "urn:comfort-platform:bus:common#/$defs/ref"
+      },
+      "minItems": 0,
+      "maxItems": 100
+    },
+    "addon_ingredient_refs": {
+      "type": "array",
+      "items": {
+        "$ref": "urn:comfort-platform:bus:common#/$defs/ref"
+      },
+      "minItems": 0,
+      "maxItems": 100
+    },
+    "service_type": {
+      "enum": [
+        "table",
+        "takeaway"
+      ]
+    }
+  },
+  "anyOf": [
+    {
+      "type": "object",
+      "properties": {
+        "dish_ref": {
+          "$ref": "urn:comfort-platform:bus:common#/$defs/ref"
+        }
+      }
+    },
+    {
+      "type": "object",
+      "properties": {
+        "freeform_name": {
+          "$ref": "urn:comfort-platform:bus:common#/$defs/text"
+        }
+      }
+    }
+  ]
+}

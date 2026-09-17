@@ -1,0 +1,36 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:comfort-platform:bus:logistics.notifications.email_requested:v1",
+  "title": "logistics.notifications.email_requested v1",
+  "description": "Email di alert che ComfortLogistics invia a se stesso, per avere retry e avvisi del bus (ADR-0015 §15.9)",
+  "type": "object",
+  "required": [
+    "recipient_email",
+    "kind",
+    "alert_type",
+    "level",
+    "rows"
+  ],
+  "properties": {
+    "recipient_email": {
+      "$ref": "urn:comfort-platform:bus:common#/$defs/email"
+    },
+    "kind": {
+      "const": "inventory_alert"
+    },
+    "alert_type": {
+      "$ref": "urn:comfort-platform:bus:common#/$defs/alertType"
+    },
+    "level": {
+      "$ref": "urn:comfort-platform:bus:common#/$defs/alertLevel"
+    },
+    "rows": {
+      "type": "array",
+      "items": {
+        "$ref": "urn:comfort-platform:bus:common#/$defs/alertRow"
+      },
+      "minItems": 1,
+      "maxItems": 500
+    }
+  }
+}

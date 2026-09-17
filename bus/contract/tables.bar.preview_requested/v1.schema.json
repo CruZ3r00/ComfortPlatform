@@ -1,0 +1,24 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:comfort-platform:bus:tables.bar.preview_requested:v1",
+  "title": "tables.bar.preview_requested v1",
+  "description": "Richiesta del dettaglio ml e bottiglie per il riepilogo bar (ADR-0015 §15.6)",
+  "type": "object",
+  "required": [
+    "shift_ref",
+    "beverages"
+  ],
+  "properties": {
+    "shift_ref": {
+      "$ref": "urn:comfort-platform:bus:common#/$defs/ref"
+    },
+    "beverages": {
+      "type": "array",
+      "items": {
+        "$ref": "urn:comfort-platform:bus:common#/$defs/beverageCount"
+      },
+      "minItems": 0,
+      "maxItems": 1000
+    }
+  }
+}

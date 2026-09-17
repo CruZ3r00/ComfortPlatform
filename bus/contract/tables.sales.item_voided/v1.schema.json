@@ -1,0 +1,36 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:comfort-platform:bus:tables.sales.item_voided:v1",
+  "title": "tables.sales.item_voided v1",
+  "description": "Item annullato o risolto 'waste' / 'not_prepared' al checkout (ADR-0015 §15.6)",
+  "type": "object",
+  "required": [
+    "item_ref",
+    "order_ref",
+    "disposition",
+    "previous_status"
+  ],
+  "properties": {
+    "item_ref": {
+      "$ref": "urn:comfort-platform:bus:common#/$defs/ref"
+    },
+    "order_ref": {
+      "$ref": "urn:comfort-platform:bus:common#/$defs/ref"
+    },
+    "disposition": {
+      "enum": [
+        "waste",
+        "not_prepared"
+      ]
+    },
+    "previous_status": {
+      "enum": [
+        "pending",
+        "taken",
+        "preparing",
+        "ready",
+        "served"
+      ]
+    }
+  }
+}

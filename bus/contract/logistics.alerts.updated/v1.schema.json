@@ -1,0 +1,59 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:comfort-platform:bus:logistics.alerts.updated:v1",
+  "title": "logistics.alerts.updated v1",
+  "description": "Alert non archiviati per la proiezione e il campanello di ComforTables (ADR-0015 §15.9)",
+  "type": "object",
+  "required": [
+    "version",
+    "unarchived_count",
+    "groups"
+  ],
+  "properties": {
+    "version": {
+      "$ref": "urn:comfort-platform:bus:common#/$defs/version"
+    },
+    "unarchived_count": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "groups": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "type",
+          "level",
+          "alert_refs",
+          "rows"
+        ],
+        "properties": {
+          "type": {
+            "$ref": "urn:comfort-platform:bus:common#/$defs/alertType"
+          },
+          "level": {
+            "$ref": "urn:comfort-platform:bus:common#/$defs/alertLevel"
+          },
+          "alert_refs": {
+            "type": "array",
+            "items": {
+              "$ref": "urn:comfort-platform:bus:common#/$defs/ref"
+            },
+            "minItems": 1,
+            "maxItems": 500
+          },
+          "rows": {
+            "type": "array",
+            "items": {
+              "$ref": "urn:comfort-platform:bus:common#/$defs/alertRow"
+            },
+            "minItems": 0,
+            "maxItems": 500
+          }
+        }
+      },
+      "minItems": 0,
+      "maxItems": 10
+    }
+  }
+}

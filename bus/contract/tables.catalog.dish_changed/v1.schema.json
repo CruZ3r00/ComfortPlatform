@@ -1,0 +1,7 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:comfort-platform:bus:tables.catalog.dish_changed:v1",
+  "title": "tables.catalog.dish_changed v1",
+  "description": "Piatto o bevanda creato, modificato o archiviato in ComforTables (ADR-0015 §15.4)",
+  "$ref": "urn:comfort-platform:bus:common#/$defs/dish"
+}

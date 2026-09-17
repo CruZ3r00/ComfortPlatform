@@ -1,0 +1,43 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:comfort-platform:bus:tables.alerts.acknowledge_requested:v1",
+  "title": "tables.alerts.acknowledge_requested v1",
+  "description": "'Archivia' nella barra degli alert di ComforTables (ADR-0015 §15.9)",
+  "type": "object",
+  "required": [
+    "alert_refs",
+    "acknowledged_by"
+  ],
+  "properties": {
+    "alert_refs": {
+      "type": "array",
+      "items": {
+        "$ref": "urn:comfort-platform:bus:common#/$defs/ref"
+      },
+      "minItems": 1,
+      "maxItems": 500
+    },
+    "acknowledged_by": {
+      "type": "object",
+      "required": [
+        "person_id",
+        "display_name"
+      ],
+      "properties": {
+        "person_id": {
+          "anyOf": [
+            {
+              "$ref": "urn:comfort-platform:bus:common#/$defs/uuid"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "display_name": {
+          "$ref": "urn:comfort-platform:bus:common#/$defs/text"
+        }
+      }
+    }
+  }
+}

@@ -7,8 +7,19 @@
  * libera di 127.0.0.1 e distrutto a fine test. Niente emulatori: il runner deve vedere
  * transazioni, lock, errori e cataloghi reali.
  *
- * Binari: PG_BIN_DIR, altrimenti /usr/lib/postgresql/<PG_VERSION, default 16>/bin (ADR-0014 §14.6).
+ * Binari: PG_BIN_DIR, altrimenti /usr/lib/postgresql/<PG_VERSION, default 17>/bin: la versione
+ * principale di Supabase (docs/prove-tecniche-staging.md, punto 1).
  * Se mancano i test FALLISCONO: un test saltato non prova nulla.
+ *
+ * Il cluster imita Supabase dove conta per le migrazioni di piattaforma (ADR-0014 §14.3):
+ * - `pg_cron` precaricata, con `cron.database_name = 'postgres'`;
+ * - amministratore `db_admin` NON superutente, con gli attributi di `postgres` su staging (§3.1, §8.1):
+ *   CREATEROLE, CREATEDB, BYPASSRLS, REPLICATION, `pg_signal_backend`, `pg_read_all_settings`;
+ * - l'estensione `pg_cron` esiste gia' nel database `postgres`, creata dal superutente, con i permessi
+ *   che su Supabase concede a `postgres` l'event trigger `issue_pg_cron_access`. E' un'emulazione:
+ *   su Supabase la crea supautils, che in locale non c'e', e un non superutente non puo' crearla.
+ * In locale i job girano in background worker (`cron.use_background_workers`), senza autenticazione
+ * con password; l'identita' del job resta l'utente che lo pianifica.
  */
 const { spawnSync } = require('node:child_process')
 const { randomBytes } = require('node:crypto')
@@ -18,8 +29,10 @@ const os = require('node:os')
 const path = require('node:path')
 const pg = require('pg')
 
-const DEFAULT_VERSION = '16'
+const DEFAULT_VERSION = '17'
 const START_ATTEMPTS = 5
+const ADMIN_USER = 'db_admin'
+const CRON_DATABASE = 'postgres'
 
 function resolveBinDir() {
   const version = process.env.PG_VERSION || DEFAULT_VERSION
@@ -28,8 +41,8 @@ function resolveBinDir() {
   if (missing.length) {
     throw new Error(
       `Binari server Postgres mancanti in ${dir}: ${missing.join(', ')}.\n` +
-        `Installa il server (Debian: sudo apt install postgresql-${version}; istruzioni complete ` +
-        'in CLAUDE.md > Comandi) oppure indica la cartella dei binari con PG_BIN_DIR.'
+        `Installa il server e pg_cron (Debian: sudo apt install postgresql-${version} postgresql-${version}-cron; ` +
+        'istruzioni complete in testing/README.md di comfort-platform) oppure indica la cartella dei binari con PG_BIN_DIR.'
     )
   }
   return dir
@@ -56,19 +69,26 @@ function freePort() {
 }
 
 /**
- * Avvia un cluster. Restituisce:
- * - `connection`: host, port, user, password (senza database);
+ * Avvia un cluster. Con `pgCron: false` pg_cron non viene precaricata (solo per provare l'errore).
+ * Restituisce:
+ * - `connection`: host, port, user, password del superutente (senza database);
+ * - `admin`: user e password dell'amministratore non superutente;
  * - `root`: cartella temporanea del cluster;
  * - `majorVersion`: versione principale del server;
- * - `createDatabase()`: database nuovo da template0, `{ name, config, connect() }`;
+ * - `pgCron`: se pg_cron e' precaricata e creata nel database `postgres`;
+ * - `createDatabase()`: database nuovo da template0, con CREATE all'amministratore;
+ * - `database(name)`: un database esistente (es. `postgres`, quello di pg_cron);
+ *   entrambi restituiscono `{ name, config, adminConfig, connect(), connectAdmin() }`;
+ * - `connect(config)`: client con una configurazione qualsiasi (es. un utente applicativo), chiuso da `stop()`;
  * - `stop()`: chiude i client aperti dall'harness, ferma il server e cancella la cartella.
  */
-async function startPostgres() {
+async function startPostgres({ pgCron = true } = {}) {
   const binDir = resolveBinDir()
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'comfortplatform-pg-'))
   const dataDir = path.join(root, 'data')
   const logFile = path.join(root, 'server.log')
   const password = randomBytes(24).toString('hex')
+  const adminPassword = randomBytes(24).toString('hex')
   const clients = new Set()
   let running = false
 
@@ -118,6 +138,13 @@ async function startPostgres() {
           'fsync = off',
           'synchronous_commit = off',
           'full_page_writes = off',
+          ...(pgCron
+            ? [
+                "shared_preload_libraries = 'pg_cron'",
+                `cron.database_name = '${CRON_DATABASE}'`,
+                'cron.use_background_workers = on'
+              ]
+            : []),
           ''
         ].join('\n')
       )
@@ -148,26 +175,54 @@ async function startPostgres() {
       return client
     }
 
-    const admin = await connect({ ...connection, database: 'postgres' })
-    const { rows } = await admin.query("select current_setting('server_version_num')::int as num")
-    const majorVersion = Math.floor(rows[0].num / 10000)
-    await admin.end()
+    const superuser = await connect({ ...connection, database: 'postgres' })
+    let majorVersion
+    try {
+      const { rows } = await superuser.query("select current_setting('server_version_num')::int as num")
+      majorVersion = Math.floor(rows[0].num / 10000)
+      await superuser.query(`
+        create role ${ADMIN_USER} login createrole createdb bypassrls replication password '${adminPassword}';
+        grant pg_signal_backend, pg_read_all_settings to ${ADMIN_USER};
+        grant create on database postgres to ${ADMIN_USER};`)
+      if (pgCron) {
+        await superuser.query(`
+          create extension pg_cron;
+          grant usage on schema cron to ${ADMIN_USER} with grant option;
+          grant all privileges on all tables in schema cron to ${ADMIN_USER} with grant option;
+          revoke all on table cron.job from ${ADMIN_USER};
+          grant select on table cron.job to ${ADMIN_USER} with grant option;`)
+      }
+    } finally {
+      await superuser.end()
+    }
+
+    const admin = { user: ADMIN_USER, password: adminPassword }
+    const database = (name) => {
+      const config = { ...connection, database: name }
+      const adminConfig = { ...connection, ...admin, database: name }
+      return { name, config, adminConfig, connect: () => connect(config), connectAdmin: () => connect(adminConfig) }
+    }
 
     let databases = 0
     return {
       connection,
+      admin,
       root,
       majorVersion,
+      pgCron,
+      cronDatabase: CRON_DATABASE,
+      database,
+      connect,
       async createDatabase() {
         const name = `t_${++databases}`
         const client = await connect({ ...connection, database: 'postgres' })
         try {
           await client.query(`create database ${name} template template0`)
+          await client.query(`grant create on database ${name} to ${ADMIN_USER}`)
         } finally {
           await client.end()
         }
-        const config = { ...connection, database: name }
-        return { name, config, connect: () => connect(config) }
+        return database(name)
       },
       async stop() {
         await Promise.all([...clients].map((client) => client.end().catch(() => {})))

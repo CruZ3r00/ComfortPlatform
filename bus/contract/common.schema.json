@@ -1,0 +1,224 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:comfort-platform:bus:common",
+  "title": "Tipi comuni del contratto del bus (ADR-0014 §14.8)",
+  "$defs": {
+    "ref": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128,
+      "pattern": "^\\S+$",
+      "description": "Riferimento a un'entita' dell'app produttrice (documentId di Strapi, id di ComfortLogistics)"
+    },
+    "uuid": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "email": {
+      "type": "string",
+      "format": "email",
+      "maxLength": 320
+    },
+    "text": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 500
+    },
+    "dateTime": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "jwe": {
+      "type": "string",
+      "maxLength": 16384,
+      "pattern": "^[A-Za-z0-9_-]+\\.[A-Za-z0-9_-]*\\.[A-Za-z0-9_-]+\\.[A-Za-z0-9_-]+\\.[A-Za-z0-9_-]+$",
+      "description": "JWE in serializzazione compatta, cifrato per il destinatario (ADR-0013 §13.8)"
+    },
+    "version": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "amount": {
+      "type": "number",
+      "minimum": 0
+    },
+    "unit": {
+      "enum": [
+        "g",
+        "ml",
+        "pz",
+        "mazzo"
+      ],
+      "description": "Unita' base di un articolo (ADR-0015 §15.3)"
+    },
+    "alertLevel": {
+      "enum": [
+        "info",
+        "warning",
+        "critical"
+      ]
+    },
+    "alertType": {
+      "enum": [
+        "predictive",
+        "threshold"
+      ]
+    },
+    "dish": {
+      "type": "object",
+      "description": "Piatto o bevanda del menu di ComforTables",
+      "required": [
+        "dish_ref",
+        "version",
+        "name",
+        "category",
+        "price",
+        "is_beverage",
+        "is_beverage_advanced",
+        "is_archived"
+      ],
+      "properties": {
+        "dish_ref": {
+          "$ref": "#/$defs/ref"
+        },
+        "version": {
+          "$ref": "#/$defs/version"
+        },
+        "name": {
+          "$ref": "#/$defs/text"
+        },
+        "category": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/text"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "price": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/amount"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "is_beverage": {
+          "type": "boolean"
+        },
+        "is_beverage_advanced": {
+          "type": "boolean"
+        },
+        "is_archived": {
+          "type": "boolean"
+        }
+      }
+    },
+    "ingredient": {
+      "type": "object",
+      "description": "Ingrediente del menu di ComforTables",
+      "required": [
+        "ingredient_ref",
+        "version",
+        "name",
+        "allergens",
+        "is_addon",
+        "is_archived"
+      ],
+      "properties": {
+        "ingredient_ref": {
+          "$ref": "#/$defs/ref"
+        },
+        "version": {
+          "$ref": "#/$defs/version"
+        },
+        "name": {
+          "$ref": "#/$defs/text"
+        },
+        "allergens": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/text"
+          },
+          "maxItems": 50
+        },
+        "is_addon": {
+          "type": "boolean"
+        },
+        "is_archived": {
+          "type": "boolean"
+        }
+      }
+    },
+    "beverageCount": {
+      "type": "object",
+      "required": [
+        "dish_ref",
+        "served_count"
+      ],
+      "properties": {
+        "dish_ref": {
+          "$ref": "#/$defs/ref"
+        },
+        "served_count": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "alertRow": {
+      "type": "object",
+      "description": "Riga di un alert di magazzino, pronta da mostrare",
+      "required": [
+        "article_ref",
+        "name",
+        "unit",
+        "stock_qty",
+        "days_to_depletion",
+        "threshold",
+        "level"
+      ],
+      "properties": {
+        "article_ref": {
+          "$ref": "#/$defs/ref"
+        },
+        "name": {
+          "$ref": "#/$defs/text"
+        },
+        "unit": {
+          "$ref": "#/$defs/unit"
+        },
+        "stock_qty": {
+          "$ref": "#/$defs/amount"
+        },
+        "days_to_depletion": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/amount"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "threshold": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/amount"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "level": {
+          "$ref": "#/$defs/alertLevel"
+        }
+      }
+    }
+  }
+}

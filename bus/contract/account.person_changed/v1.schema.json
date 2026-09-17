@@ -1,0 +1,41 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:comfort-platform:bus:account.person_changed:v1",
+  "title": "account.person_changed v1",
+  "description": "Email o nome del titolare cambiati (ADR-0013 §13.4)",
+  "type": "object",
+  "required": [
+    "person_id",
+    "email",
+    "first_name",
+    "last_name"
+  ],
+  "properties": {
+    "person_id": {
+      "$ref": "urn:comfort-platform:bus:common#/$defs/uuid"
+    },
+    "email": {
+      "$ref": "urn:comfort-platform:bus:common#/$defs/email"
+    },
+    "first_name": {
+      "anyOf": [
+        {
+          "$ref": "urn:comfort-platform:bus:common#/$defs/text"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "last_name": {
+      "anyOf": [
+        {
+          "$ref": "urn:comfort-platform:bus:common#/$defs/text"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    }
+  }
+}

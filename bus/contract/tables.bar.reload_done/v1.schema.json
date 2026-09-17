@@ -1,0 +1,32 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:comfort-platform:bus:tables.bar.reload_done:v1",
+  "title": "tables.bar.reload_done v1",
+  "description": "Carico fatto del bar: bevande servite nel turno (ADR-0015 §15.6)",
+  "type": "object",
+  "required": [
+    "shift_ref",
+    "opened_at",
+    "closed_at",
+    "beverages"
+  ],
+  "properties": {
+    "shift_ref": {
+      "$ref": "urn:comfort-platform:bus:common#/$defs/ref"
+    },
+    "opened_at": {
+      "$ref": "urn:comfort-platform:bus:common#/$defs/dateTime"
+    },
+    "closed_at": {
+      "$ref": "urn:comfort-platform:bus:common#/$defs/dateTime"
+    },
+    "beverages": {
+      "type": "array",
+      "items": {
+        "$ref": "urn:comfort-platform:bus:common#/$defs/beverageCount"
+      },
+      "minItems": 0,
+      "maxItems": 1000
+    }
+  }
+}

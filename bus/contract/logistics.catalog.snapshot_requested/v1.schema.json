@@ -1,0 +1,7 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:comfort-platform:bus:logistics.catalog.snapshot_requested:v1",
+  "title": "logistics.catalog.snapshot_requested v1",
+  "description": "Tasto 'Importa da ComforTables': richiesta del catalogo completo (ADR-0015 §15.4)",
+  "type": "object"
+}

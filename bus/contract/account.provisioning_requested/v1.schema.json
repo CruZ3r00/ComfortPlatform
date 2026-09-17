@@ -1,0 +1,31 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:comfort-platform:bus:account.provisioning_requested:v1",
+  "title": "account.provisioning_requested v1",
+  "description": "Piano con ComforTables attivato: creazione dell'organizzazione in ComforTables (ADR-0013 §13.8)",
+  "type": "object",
+  "required": [
+    "person_id",
+    "plan_code",
+    "owner_email",
+    "owner_name",
+    "staff_default_password_hash"
+  ],
+  "properties": {
+    "person_id": {
+      "$ref": "urn:comfort-platform:bus:common#/$defs/uuid"
+    },
+    "plan_code": {
+      "$ref": "urn:comfort-platform:bus:common#/$defs/text"
+    },
+    "owner_email": {
+      "$ref": "urn:comfort-platform:bus:common#/$defs/email"
+    },
+    "owner_name": {
+      "$ref": "urn:comfort-platform:bus:common#/$defs/text"
+    },
+    "staff_default_password_hash": {
+      "$ref": "urn:comfort-platform:bus:common#/$defs/jwe"
+    }
+  }
+}

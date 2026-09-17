@@ -1,0 +1,16 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:comfort-platform:bus:platform.clock.daily:v1",
+  "title": "platform.clock.daily v1",
+  "description": "Orologio giornaliero alle 02:00 UTC, pubblicato da pg_cron (ADR-0014 §14.7)",
+  "type": "object",
+  "required": [
+    "date"
+  ],
+  "properties": {
+    "date": {
+      "type": "string",
+      "format": "date"
+    }
+  }
+}

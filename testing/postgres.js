@@ -17,7 +17,9 @@
  *   CREATEROLE, CREATEDB, BYPASSRLS, REPLICATION, `pg_signal_backend`, `pg_read_all_settings`;
  * - l'estensione `pg_cron` esiste gia' nel database `postgres`, creata dal superutente, con i permessi
  *   che su Supabase concede a `postgres` l'event trigger `issue_pg_cron_access`. E' un'emulazione:
- *   su Supabase la crea supautils, che in locale non c'e', e un non superutente non puo' crearla.
+ *   su Supabase la crea supautils, che in locale non c'e', e un non superutente non puo' crearla;
+ * - lo schema `public` del database `postgres` appartiene all'amministratore, senza permessi a PUBLIC, come
+ *   su Supabase (verificato su staging il 2026-09-17): 0009 lo cede a cs_site.
  * In locale i job girano in background worker (`cron.use_background_workers`), senza autenticazione
  * con password; l'identita' del job resta l'utente che lo pianifica.
  */
@@ -183,7 +185,9 @@ async function startPostgres({ pgCron = true } = {}) {
       await superuser.query(`
         create role ${ADMIN_USER} login createrole createdb bypassrls replication password '${adminPassword}';
         grant pg_signal_backend, pg_read_all_settings to ${ADMIN_USER};
-        grant create on database postgres to ${ADMIN_USER};`)
+        grant create on database postgres to ${ADMIN_USER};
+        alter schema public owner to ${ADMIN_USER};
+        revoke all on schema public from public;`)
       if (pgCron) {
         await superuser.query(`
           create extension pg_cron;

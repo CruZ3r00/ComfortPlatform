@@ -20,7 +20,9 @@ const FILES = [
   '0004_pg_cron.sql',
   '0005_bus_contract_v1.sql',
   '0006_logistics_schema.sql',
-  '0007_account_schema.sql'
+  '0007_account_schema.sql',
+  '0008_comfortables_tables_schema.sql',
+  '0009_site_public_schema.sql'
 ]
 const PLATFORM_ROLES = ['platform_admin', 'ct_app', 'cs_site', 'cs_account', 'cl_app']
 const BUS_APPS = ['ct_app', 'cs_account', 'cl_app']
@@ -96,7 +98,7 @@ async function snapshot() {
       [PLATFORM_ROLES]
     ),
     schemas: await query(
-      "select nspname::text, nspowner::regrole::text, nspacl::text from pg_namespace where nspname in ('account', 'bus', 'logistics', 'platform') order by 1"
+      "select nspname::text, nspowner::regrole::text, nspacl::text from pg_namespace where nspname in ('account', 'bus', 'logistics', 'platform', 'public', 'tables') order by 1"
     ),
     relations: await query(
       `select c.relname::text, c.relkind::text, c.relowner::regrole::text, c.relacl::text, c.relrowsecurity
@@ -165,7 +167,9 @@ test('apply come amministratore non superutente: ruoli, proprieta\', permessi, j
     ['account', 'cs_account'],
     ['bus', 'platform_admin'],
     ['logistics', 'cl_app'],
-    ['platform', 'platform_admin']
+    ['platform', 'platform_admin'],
+    ['public', 'cs_site'],
+    ['tables', 'ct_app']
   ])
   assert.ok(state.relations.length > 10)
   for (const relation of state.relations) {
@@ -272,6 +276,20 @@ test('apply come amministratore non superutente: ruoli, proprieta\', permessi, j
     state.defaultAcl.filter((acl) => acl.defaclrole === 'cs_account').map((acl) => [acl.defaclnamespace, acl.defaclobjtype, acl.defaclacl]),
     [[0, 'f', '{cs_account=X/cs_account}']]
   )
+  // Schemi tables (0008) e public (0009): di ct_app e cs_site, stesse regole; su un database nuovo nessuna tabella
+  // di ComforTables da spostare.
+  for (const role of ['ct_app', 'cs_site']) {
+    assert.deepEqual(
+      state.memberships.find((m) => m.role === role && m.member === server.admin.user && m.set_option),
+      { role, member: server.admin.user, admin_option: false, inherit_option: false, set_option: true },
+      role
+    )
+    assert.deepEqual(
+      state.defaultAcl.filter((acl) => acl.defaclrole === role).map((acl) => [acl.defaclnamespace, acl.defaclobjtype, acl.defaclacl]),
+      [[0, 'f', `{${role}=X/${role}}`]],
+      role
+    )
+  }
   assert.deepEqual(
     state.jobs,
     JOBS.map((job) => ({ ...job, username: server.admin.user, database: db.name, active: true }))

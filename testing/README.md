@@ -44,6 +44,10 @@ test('migration di ComfortLogistics come cl_app', async () => {
 Il database è `postgres`, quello di pg_cron (`server.cronDatabase`). Il cluster è unico per file di test, e i ruoli
 valgono per tutto il cluster: per isolare i test fra loro, svuotare le proprie tabelle.
 
+Schemi dopo `installPlatform` (da 0.4.0): `tables` di `ct_app` (vuoto: su un database nuovo le tabelle le creano le
+migration di ComforTables) e `public` di `cs_site`, senza permessi a PUBLIC; `cs_site` non ha CREATE sul database, come
+su Supabase. Le migration del sito si applicano come `cs_site` con schema `public`.
+
 ## CI delle app
 
 - **Postgres:** servono Postgres 17 con pg_cron in `shared_preload_libraries`, e un amministratore con i permessi di

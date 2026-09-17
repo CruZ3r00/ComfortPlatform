@@ -72,10 +72,12 @@ JavaScript **CommonJS senza build** (importabile da Strapi CJS e dai backend Fas
 - sessioni 1-3: runner, prove tecniche su staging, utenti applicativi, schema `bus`, job `pg_cron`;
 - sessione 4: contratto v1 (21 argomenti), libreria `bus/client`, schema `logistics`, kit `testing/`;
 - sessione 5 (account ComfortService, sessione A di ComfortService): `0007` schema `account` di `cs_account`, versione
-  0.3.0. Le tabelle dell'account le crea ComfortService (`backend/migrations/account/`) come `cs_account`. Su staging
-  non ancora applicata;
-- **staging**: migrazioni 0001-0006 applicate il 2026-09-17 (backup prima in `~/backups/comfort/`); `cl_app` con
-  login, password in `~/.config/comfortplatform/staging/cl_app.password`; libreria provata sui pooler reali (dettagli
+  0.3.0. Le tabelle dell'account le crea ComfortService (`backend/migrations/account/`) come `cs_account`;
+- sessione 6 (Fase 1 del piano 0007, dal todo.md di ComfortService): `0008` ComforTables da `public` a `tables` di
+  `ct_app`, `0009` `public` a `cs_site`, rollback `db/rollback/0009-0008_…`, copia del sito
+  `data-migrations/site-copy`, versione 0.4.0. Su staging non ancora applicate;
+- **staging**: migrazioni 0001-0007 applicate il 2026-09-17 (backup prima in `~/backups/comfort/`); `cl_app` e
+  `cs_account` con login, password in `~/.config/comfortplatform/staging/<ruolo>.password`; libreria provata sui pooler reali (dettagli
   in `todo.md`, sessione 4);
 - **produzione**: nulla applicato. Prima serve il confronto tra ambienti (invariante 6), che non esiste ancora,
   come il backup nel runner e gli script di migrazione dati.
@@ -84,15 +86,16 @@ JavaScript **CommonJS senza build** (importabile da Strapi CJS e dai backend Fas
 
 | Cartella | Contenuto |
 |---|---|
-| `db/migrations/` | SQL di piattaforma `NNNN_nome.sql`, applicato dall'amministratore per ogni ambiente: `0001` registro, `0002` utenti, `0003` bus, `0004` job `pg_cron`, `0005` contratto v1, `0006` schema `logistics`, `0007` schema `account` |
+| `db/migrations/` | SQL di piattaforma `NNNN_nome.sql`, applicato dall'amministratore per ogni ambiente: `0001` registro, `0002` utenti, `0003` bus, `0004` job `pg_cron`, `0005` contratto v1, `0006` schema `logistics`, `0007` schema `account`, `0008` ComforTables in `tables`, `0009` `public` al sito |
+| `db/rollback/` | script inversi, uno per gruppo di migrazioni (`0009-0008_…`), e `apply.js` che li esegue in una transazione con il lock del runner; lo script toglie dal registro le migrazioni che annulla |
 | `db/runner/` | runner: `files.js` (nomi, checksum), `config.js` (variabili d'ambiente), `runner.js` (registro, piano, `inspect`, `apply`), `roles.js` (`setLogin`, `disableLogin`), `scram.js` (verificatore SCRAM), `cli.js` |
 | `db/probes/` | prove tecniche su Supabase (search_path sul pooler, `session_user`, LISTEN/NOTIFY) con oggetti `probe_` creati ed eliminati a ogni esecuzione; da ripetere prima di ogni replica in un nuovo ambiente |
 | `bus/contract/` | contratto v1: `catalog.json` (fonte unica degli argomenti), `common.schema.json`, `<argomento>/v<N>.schema.json`, `index.js` (validazione Ajv). Export `comfort-platform/contract`. Regole in `bus/contract/README.md` |
 | `bus/client/` | libreria del bus: `publish.js`, `consumer.js` (ascolto verificato, svuotamento, retry, avvisi). Export `comfort-platform`. Uso in `bus/client/README.md` |
 | `testing/` | kit di test per le app: `postgres.js` (Postgres 17 + pg_cron + amministratore non superutente), `platform.js` (`installPlatform`). Export `comfort-platform/testing`. Uso in `testing/README.md` |
-| `data-migrations/` | script una tantum con dry-run e report (da fare) |
+| `data-migrations/` | script una tantum con prova (default) e report: `site-copy/` (righe del sito dal database di oggi a `public`, come `cs_site`). Uso in `data-migrations/README.md` |
 | `docs/` | `prove-tecniche-staging.md`: esiti delle prove tecniche |
-| `tests/` | `node:test` sul kit `testing/`; `tests/helpers/platform.js`: fixture del bus e consumatore SQL di riferimento; `tests/helpers/contract-examples.js`: un payload valido per argomento |
+| `tests/` | `node:test` sul kit `testing/`; `tests/helpers/platform.js`: fixture del bus e consumatore SQL di riferimento; `tests/helpers/contract-examples.js`: un payload valido per argomento; `tests/helpers/comfortables.js`: staging prima della Fase 1 (fixture della struttura di `public`, ruoli e publication di Supabase) e fotografia del catalogo; `tests/fixtures/`: strutture reali (ComforTables su staging, sito dopo le sue migrazioni 001-017) |
 
 ## Invarianti (ADR-0014 §4)
 
@@ -117,7 +120,12 @@ JavaScript **CommonJS senza build** (importabile da Strapi CJS e dai backend Fas
 - **Argomenti e iscrizioni del bus**: nuova migrazione (`insert … on conflict do nothing` come amministratore), **identica a `bus/contract/catalog.json`** (verificato da `tests/platform-migrations.test.js`). Le iscrizioni di un'app si registrano quando l'app si integra.
 - **Schemi applicativi**: `create schema … authorization <utente>`; permessi, default privileges e commento dentro `set local role <utente>`, perche' l'amministratore ha SET ma non INHERIT sugli utenti applicativi (0006 `logistics`, 0007 `account`). Uno schema gia' presente con un altro proprietario ferma la migrazione. RLS sulle tabelle: la attivano le migration dell'app.
 - **Prima di applicare** su staging o produzione: backup completo e `dry-run` (ADR-0014 §14.5).
-- `.gitattributes` fissa `eol=lf` sui `.sql`: il checksum è calcolato sui byte.
+- `.gitattributes` fissa `eol=lf` sui `.sql`: il checksum è calcolato sui byte. Per questo i corpi di funzione copiati da un
+  database con fine riga CRLF (due funzioni di ComforTables su staging) diventano LF: i confronti dei test li normalizzano.
+- **Spostare oggetti esistenti** in uno schema applicativo (0008): elenco esplicito degli oggetti, stati ammessi verificati
+  dal catalogo prima di toccare qualcosa (tutto da spostare, tutto gia' spostato, database nuovo), conteggi dal catalogo
+  e non con `to_regclass` (su uno schema senza USAGE da' errore), funzioni per oid e nome (una firma con un tipo di riga
+  non si risolve dopo lo spostamento). Rollback in `db/rollback/`, provato nei test fino alla riapplicazione.
 
 ## Runner: comportamento
 
@@ -166,13 +174,18 @@ Variabili per ambiente, con `<AMBIENTE>` = nome passato a `--env` in maiuscolo (
   e `postgresql-17-cron`. Il kit `testing/` imita Supabase: `pg_cron` precaricata (`cron.database_name = 'postgres'`,
   job in background worker), amministratore `db_admin` non superutente (CREATEROLE, CREATEDB, BYPASSRLS,
   REPLICATION, `pg_signal_backend`, `pg_read_all_settings`), estensione `pg_cron` gia' creata dal superutente
-  con i permessi che Supabase da' a `postgres` (emulazione di supautils). Le migrazioni reali vanno nel database `postgres`.
+  con i permessi che Supabase da' a `postgres` (emulazione di supautils), schema `public` dell'amministratore senza
+  permessi a PUBLIC (come su Supabase). Le migrazioni reali vanno nel database `postgres`.
   Il cluster di sistema non serve: i test creano il proprio su una porta libera. Per non crearlo
   (la cartella `createcluster.d` non esiste di default):
   `sudo mkdir -p /etc/postgresql-common/createcluster.d && echo 'create_main_cluster = false' | sudo tee /etc/postgresql-common/createcluster.d/no-main-cluster.conf`,
   poi `sudo apt install postgresql-17`. Se e' gia' stato creato: `sudo pg_dropcluster --stop 17 main`.
   Override: `PG_VERSION` oppure `PG_BIN_DIR`. Senza binari i test falliscono, non vengono saltati.
 - **Lint:** `npm run lint` (ESLint 10 flat config, `eslint.config.js`).
+- **Rollback:** `npm run db:rollback -- db/rollback/<script>.sql --env staging --check` (esegue e annulla), poi senza
+  `--check`. Stesse variabili del runner; dopo, `db:apply` riapplica le migrazioni annullate.
+- **Copia del sito:** `npm run data:site-copy -- --from site_live --from-schema <schema> --env staging` (prova), poi con
+  `--apply`; `--no-data contact_messages` lascia vuoti i messaggi dei visitatori. Sorgente in `PLATFORM_SITE_LIVE_DATABASE_*`.
 - **Migrazioni:** `npm run db:list -- --env staging`, `npm run db:dry-run -- --env staging`, `npm run db:apply -- --env staging`.
   Da un'app che ha il pacchetto come dipendenza: `npx comfort-platform <list|dry-run|apply|role-login|role-disable> … --env <ambiente>`.
 - **Utenti applicativi:** `read -rs PW; printf '%s' "$PW" | npm run db:role-login -- ct_app --env staging; unset PW`

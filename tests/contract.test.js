@@ -9,7 +9,7 @@ const path = require('node:path')
 const { ContractError, catalog, getTopic, messageFields, topics, validatePayload } = require('../bus/contract')
 
 const CONTRACT_DIR = path.resolve(__dirname, '..', 'bus', 'contract')
-const { ORG, REQUEST, JWE, dish, VALID } = require('./helpers/contract-examples')
+const { ORG, REQUEST, JWE, dish, dishWithoutIngredients, VALID } = require('./helpers/contract-examples')
 
 /** Varianti non valide: [descrizione, payload]. */
 const without = (object, key) => {
@@ -18,7 +18,8 @@ const without = (object, key) => {
   return copy
 }
 const INVALID = {
-  'tables.catalog.dish_changed': [['versione 0', { ...dish, version: 0 }], ['prezzo negativo', { ...dish, price: -1 }]],
+  'tables.catalog.dish_changed': [['versione 0', { ...dish, version: 0 }], ['prezzo negativo', { ...dish, price: -1 }],
+    ['ingrediente con spazi', { ...dish, ingredient_refs: ['i 1'] }]],
   'tables.catalog.snapshot': [['piatto senza nome', { ...VALID['tables.catalog.snapshot'], dishes: [without(dish, 'name')] }]],
   'tables.sales.item_served': [
     ['ne\' piatto ne\' nome libero', { ...VALID['tables.sales.item_served'], dish_ref: null, freeform_name: null }],
@@ -141,3 +142,13 @@ test('campi del messaggio: chiave di entita\' con prefisso, versione, organizzaz
   rejects('platform.clock.daily', { organizationId: ORG }, /i messaggi di platform non hanno organizzazione/)
 })
 
+
+// Campi in piu' ammessi (bus/contract/README.md): il piatto puo' portare gli ingredienti
+// pubblici per precompilare la ricetta, ma un produttore che non li invia resta valido.
+test('ingredient_refs del piatto e\' facoltativo e non cambia la versione', () => {
+  assert.equal(validatePayload('tables.catalog.dish_changed', 1, dish).valid, true)
+  assert.equal(validatePayload('tables.catalog.dish_changed', 1, dishWithoutIngredients).valid, true)
+  assert.equal(validatePayload('tables.catalog.snapshot', 1,
+    { chunk_index: 0, chunk_count: 1, dishes: [dishWithoutIngredients], ingredients: [] }).valid, true)
+  assert.deepEqual(getTopic('tables.catalog.dish_changed').versions, [1])
+})

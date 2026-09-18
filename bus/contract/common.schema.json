@@ -115,6 +115,14 @@
         },
         "is_archived": {
           "type": "boolean"
+        },
+        "ingredient_refs": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/ref"
+          },
+          "maxItems": 200,
+          "description": "Ingredienti pubblici del piatto, nell'ordine del menu (ADR-0015 §15.4). Facoltativo: precompila la ricetta in ComfortLogistics, che resta proprietaria delle dosi. Assente quando il produttore non lo invia ancora."
         }
       }
     },

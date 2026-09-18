@@ -7,7 +7,11 @@ const PERSON = '0b6f2f8e-8f2a-4b0e-9a55-3c1f0a7d2e10'
 const REQUEST = 'c3d5a1e2-7b8f-4c6d-9e0a-1b2c3d4e5f60'
 const JWE = 'eyJhbGciOiJFQ0RILUVTK0EyNTZLVyIsImVuYyI6IkEyNTZHQ00ifQ.a2V5.aXY.Y2lwaGVy.dGFn'
 
-const dish = { dish_ref: 'd1', version: 3, name: 'Margherita', category: 'Pizze', price: 8.5, is_beverage: false, is_beverage_advanced: false, is_archived: false }
+const dish = { dish_ref: 'd1', version: 3, name: 'Margherita', category: 'Pizze', price: 8.5, is_beverage: false,
+  is_beverage_advanced: false, is_archived: false, ingredient_refs: ['i1', 'i2'] }
+// Lo stesso piatto senza il campo facoltativo: un produttore che non lo invia resta valido.
+const dishWithoutIngredients = { ...dish, ingredient_refs: undefined }
+delete dishWithoutIngredients.ingredient_refs
 const ingredient = { ingredient_ref: 'i1', version: 2, name: 'Mozzarella', allergens: ['latte'], is_addon: true, is_archived: false }
 const alertRow = { article_ref: 'a1', name: 'Mozzarella', unit: 'g', stock_qty: 500, days_to_depletion: 1.5, threshold: null, level: 'warning' }
 
@@ -56,4 +60,4 @@ const VALID = {
   'platform.clock.daily': { date: '2026-09-17' }
 }
 
-module.exports = { ORG, PERSON, REQUEST, JWE, dish, ingredient, alertRow, VALID }
+module.exports = { ORG, PERSON, REQUEST, JWE, dish, dishWithoutIngredients, ingredient, alertRow, VALID }

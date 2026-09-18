@@ -874,3 +874,24 @@ Richiesta dell'utente: commit e tag di ComfortPlatform con remoto `git@github.co
       Branch `master` rinominato `main`, i due commit locali (non pubblicati) rimessi sopra "Initial commit", tag creato sul
       commit riscritto; codice identico a prima a parte `README.md`. Push di `main` e del tag senza forzare
 - ComforTables (ADR e piano modificati nelle sessioni 3-4): non committato, fuori da questa richiesta
+
+---
+
+## Sessione 6 — Fase 1: ComforTables in `tables`, `public` al sito (2026-09-17)
+
+Richiesta dell'utente (dal todo.md di ComfortService, «scelta B»): database unico su staging prima di pubblicare
+ComfortService. Qui dentro: `0008` (160 tabelle e 21 funzioni di ComforTables da `public` a `tables` di `ct_app`, con
+stati ammessi verificati dal catalogo, RLS, revoche, publication), `0009` (`public` a `cs_site`), il rollback in
+`db/rollback/` con il suo `apply.js`, e `data-migrations/site-copy` (righe del sito dal database di oggi, prova di
+default, `--no-data`, confronto riga per riga e per sequenza).
+
+- Test: 98/98 e lint pulito; 22 prove rosso (fra cui rollback che non riporta la RLS, confronto della copia finto,
+  controlli di stato disattivati) tutte rosse per il motivo giusto.
+- Fixture: struttura reale di `public` su staging (`tests/fixtures/comfortables-public-schema-2026-09-17.sql.gz`) e
+  struttura del sito dopo le sue migrazioni (`site-public-schema-017.sql`).
+- Kit: `public` dell'amministratore senza permessi a PUBLIC, come su Supabase; `createAppSchemas` non crea piu'
+  `tables` ne' `account` (li creano 0007 e 0008).
+- Difetti trovati dai test: relazione risolta durante il parsing in una query che doveva gestirne l'assenza; fine riga
+  CRLF di due funzioni di staging (i `.sql` sono LF per `.gitattributes`, i confronti normalizzano).
+- Applicate su staging la sera del 17/09 dopo il fermo di ComforTables; ComforTables ripubblicato come `ct_app`.
+  Dettagli, esiti e cose rimaste aperte: `../ComfortService/todo.md`, sezione «Fase 1 su staging».

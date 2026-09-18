@@ -75,9 +75,15 @@ JavaScript **CommonJS senza build** (importabile da Strapi CJS e dai backend Fas
   0.3.0. Le tabelle dell'account le crea ComfortService (`backend/migrations/account/`) come `cs_account`;
 - sessione 6 (Fase 1 del piano 0007, dal todo.md di ComfortService): `0008` ComforTables da `public` a `tables` di
   `ct_app`, `0009` `public` a `cs_site`, rollback `db/rollback/0009-0008_…`, copia del sito
-  `data-migrations/site-copy`, versione 0.4.0. Su staging non ancora applicate;
-- **staging**: migrazioni 0001-0007 applicate il 2026-09-17 (backup prima in `~/backups/comfort/`); `cl_app` e
-  `cs_account` con login, password in `~/.config/comfortplatform/staging/<ruolo>.password`; libreria provata sui pooler reali (dettagli
+  `data-migrations/site-copy`, versione 0.4.0. **Applicate su staging il 17/09**: ComforTables in `tables` di `ct_app`
+  (Strapi ripubblicato con `DATABASE_SCHEMA=tables`), sito in `public` di `cs_site` con le sue migration e la copia
+  delle righe dal database del sito pubblicato;
+- sessione 7 (import delle ricette, dal todo.md di ComfortLogistics): campo facoltativo `ingredient_refs` sul piatto
+  in `common.schema.json`, per precompilare la ricetta in ComfortLogistics con gli ingredienti pubblici del piatto
+  (ADR-0015 §15.4). Modifica compatibile: resta la versione 1 dell'argomento, nessuna migrazione, nessun destinatario
+  da aggiornare; le dosi restano di ComfortLogistics. Versione 0.5.0;
+- **staging**: migrazioni 0001-0009 applicate il 2026-09-17 (backup prima in `~/backups/comfort/`); `cl_app` e
+  `cs_account`, `ct_app` e `cs_site` con login, password in `~/.config/comfortplatform/staging/<ruolo>.password`; libreria provata sui pooler reali (dettagli
   in `todo.md`, sessione 4);
 - **produzione**: nulla applicato. Prima serve il confronto tra ambienti (invariante 6), che non esiste ancora,
   come il backup nel runner e gli script di migrazione dati.

@@ -11,7 +11,8 @@
 const contract = require('../contract')
 const { publish } = require('./publish')
 const { createConsumer, BusListenError, LISTEN_APPLICATION_NAME } = require('./consumer')
+const { knexClient } = require('./knex')
 
 const { ContractError } = contract
 
-module.exports = { publish, createConsumer, contract, ContractError, BusListenError, LISTEN_APPLICATION_NAME }
+module.exports = { publish, createConsumer, knexClient, contract, ContractError, BusListenError, LISTEN_APPLICATION_NAME }

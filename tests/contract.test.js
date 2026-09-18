@@ -91,8 +91,16 @@ test('catalogo: coerenza di produttore, destinatari, iscrizioni, chiavi e riserv
     assert.equal(topic.sensitive, hasJwe, `${name}: sensitive deve corrispondere a un contenuto cifrato (JWE)`)
   }
 
-  const subscribed = topics.filter((topic) => topic.subscribers.length).map((topic) => topic.name)
-  assert.ok(subscribed.every((name) => getTopic(name).subscribers.every((s) => s.app === 'logistics')), 'solo iscrizioni di logistics nella v1')
+  // Le iscrizioni si registrano con la migrazione dell'integrazione di ciascuna app
+  // (ADR-0014 §14.8): l'elenco esatto, cosi' una registrata per sbaglio si vede.
+  const byApp = {}
+  for (const topic of topics) {
+    for (const subscription of topic.subscribers) (byApp[subscription.app] ||= []).push(topic.name)
+  }
+  assert.deepEqual(Object.keys(byApp).sort(), ['comfortables', 'logistics'])
+  assert.deepEqual(byApp.comfortables, ['logistics.link_changed'],
+    'ComforTables si iscrive agli altri argomenti quando avra\' gli handler: un argomento iscritto e non gestito fa fallire le consegne')
+  assert.equal(byApp.logistics.length, 14)
   assert.equal(catalog.topics, topics)
 })
 

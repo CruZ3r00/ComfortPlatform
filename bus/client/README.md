@@ -126,6 +126,19 @@ salute.
   per il destinatario, e il bus lo cancella quando tutte le consegne sono concluse.
 - **Durata**: `statement_timeout` dell'utente è 60 s; un handler lungo tiene aperta la transazione e il lock della consegna.
 
-## Non ancora
+## Pubblicare da knex (Strapi)
 
-- Adattatore per knex (Strapi, ComforTables Fase 5): oggi `publish` vuole un client con `query(text, values)`.
+`publish` vuole un client con `query(text, values)` che restituisca `{ rows }`, cioè la forma di `pg`. Un'app che parla
+con il database tramite knex usa `knexClient`, che converte i segnaposto (`$1` → `?`) e normalizza la risposta:
+
+```js
+const { publish, knexClient } = require('comfort-platform')
+
+await strapi.db.transaction(async ({ trx }) => {
+  await trx('order_items').where({ id }).update({ status: 'served' })
+  await publish(knexClient(trx), 'tables.sales.item_served', { schemaVersion: 1, organizationId, payload })
+})
+```
+
+Va costruito sulla **transazione**, non sull'istanza knex: una `knex` qualunque prenderebbe un'altra connessione dal
+pool, fuori dalla transazione dell'operazione, e il messaggio non nascerebbe più con essa (invariante 3).

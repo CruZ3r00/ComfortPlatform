@@ -213,7 +213,12 @@
       "recipients": [
         "comfortables"
       ],
-      "subscribers": []
+      "subscribers": [
+        {
+          "app": "comfortables",
+          "schema_version": 1
+        }
+      ]
     },
     {
       "name": "logistics.catalog.snapshot_requested",

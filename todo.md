@@ -945,3 +945,53 @@ a 0.5.0 dalla sessione 7. Ora entrambi a 0.6.0.
 - **ComforTables**: è il lavoro che resta. Deve pubblicare i campi da `applyOnVoid` e dal checkout con gli stessi
   valori che usa per il proprio calcolo, altrimenti il ramo resta inattivo e l'annullo di un item mai servito
   continua a non contabilizzare lo scarto.
+
+---
+
+## Sessione 9 — adattatore knex e iscrizione di ComforTables (2026-09-18)
+
+Richiesta dell'utente: «porta a termine sia lo knex che il produttore delle vendite». Questa è la parte di
+piattaforma; il produttore vive in ComforTables e ha bisogno di entrambe le cose qui sotto.
+
+- [x] `bus/client/knex.js`: `knexClient(trx)` → `{ query(text, values) }`. Strapi non parla con `pg` ma con knex,
+      che usa segnaposto `?` mentre la libreria genera `$1…$8`. La conversione segue **l'ordine di apparizione**
+      nel testo, non l'indice: knex lega per posizione, quindi `$2, $1` va riordinato e `$1, $1` duplicato.
+- [x] Esportato da `comfort-platform` insieme a `publish`: un'unica import per chi pubblica.
+- [x] `tests/bus-knex.test.js` con knex vero contro lo schema `bus` del kit: publish dentro la transazione,
+      rollback che non lascia il messaggio, invisibilità prima del commit, `request_id`, payload non valido,
+      risposta già ridotta a righe, client senza `raw()`. `knex` aggiunta alle devDependencies.
+- [x] Migrazione `0010`: iscrizione di **ComforTables** a `logistics.link_changed`, e solo a quello.
+- [x] Versione 0.7.0 in `package.json` e `package-lock.json`; `bus/client/README.md` non ha più la sezione
+      «Non ancora», sostituita dall'uso dell'adattatore.
+
+**Perché solo `logistics.link_changed`.** È il presupposto del produttore: ADR-0015 §15.11 pretende che ComforTables
+pubblichi «solo se l'organizzazione ha il collegamento attivo», e quello stato arriva da questo messaggio. Gli altri
+argomenti prodotti da ComfortLogistics (disponibilità, alert, riepilogo del bar) si iscrivono quando ComforTables
+avrà gli handler: un'app iscritta a un argomento che non sa elaborare fa fallire quelle consegne (ADR-0014 §14.8),
+esattamente com'era bloccato ComfortLogistics con i suoi 14.
+
+### Review sessione 9
+
+Verifiche: **106 test** (erano 100) e lint pulito. Cinque prove "rosso" sull'adattatore: quattro rosse subito, una
+verde — il ramo che normalizza una risposta già ridotta a righe non era coperto da nessun test, perché knex
+restituisce sempre il Result di pg. Coperto con uno stub invece di lasciarlo senza rete, e ora è rosso anche quello.
+
+Tre test esistenti dicevano qualcosa che ha smesso di essere vero, e sono stati **aggiornati, non rilassati**:
+- `contract.test.js` fissava «solo iscrizioni di logistics nella v1». Ora asserisce l'elenco esatto per app, così
+  un'iscrizione registrata per sbaglio si vede;
+- `bus-client.test.js` usava `logistics.link_changed` come esempio di argomento **senza iscritti**: sostituito con
+  `logistics.alerts.updated`, che iscritti non ne ha ancora;
+- `comfortables-schema.test.js` dava per scontato che dopo il rollback `0009-0008` l'ultima migrazione registrata
+  fosse la `0007`.
+
+**Limite trovato, non introdotto.** Il rollback `0009-0008` toglie dal registro solo le proprie migrazioni. Con la
+`0010` già applicata il registro resta con un buco, e al successivo `apply` il runner si **ferma** con «ordine per
+nome violato» invece di riapplicare fuori ordine — cioè fa la cosa giusta. Vale per qualunque migrazione successiva,
+non solo per la `0010`. Il test ora lo verifica esplicitamente e il `CLAUDE.md` lo dice fra i comandi: quel rollback
+va eseguito prima delle migrazioni che lo seguono, oppure annullando anche quelle.
+
+**Da sapere / prossimi passi**
+- **A te il rilascio**: commit e tag `v0.7.0`. Nessuna operazione git eseguita.
+- **ComforTables**: dipendenza `#v0.7.0`, tabella `logistics_links` alimentata dall'handler `link_changed`, coda
+  `logistics_outbox` e produttore delle vendite. Piano in `../ComforTables/todo.md`, «Fase 5».
+- **ComfortLogistics**: nulla da fare. Resta su `#v0.6.0`: 0.7.0 non cambia nulla di ciò che usa.

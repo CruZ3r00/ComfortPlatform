@@ -88,6 +88,11 @@ JavaScript **CommonJS senza build** (importabile da Strapi CJS e dai backend Fas
   non arrivava mai al destinatario e il ramo «`waste` senza consumi → scarto dalla ricetta» di ADR-0015 §15.6 non era
   realizzabile. Modifica compatibile: resta la versione 1 dell'argomento, nessuna migrazione, nessun destinatario da
   aggiornare. L'unico vincolo aggiunto è che una `quantity` senza piatto né nome libero non è valida. Versione 0.6.0;
+- sessione 9 (produttore delle vendite, dal todo.md di ComforTables): **adattatore knex**
+  (`bus/client/knex.js`, export `knexClient`) perche' Strapi non parla con `pg` ma con knex, e migrazione `0010` che
+  iscrive **ComforTables** a `logistics.link_changed` — il presupposto del produttore, perche' senza lo stato del
+  collegamento ComforTables non sa per quali organizzazioni pubblicare. Gli altri argomenti di ComfortLogistics si
+  iscrivono quando ComforTables avra' gli handler. Versione 0.7.0;
 - **staging**: migrazioni 0001-0009 applicate il 2026-09-17 (backup prima in `~/backups/comfort/`); `cl_app` e
   `cs_account`, `ct_app` e `cs_site` con login, password in `~/.config/comfortplatform/staging/<ruolo>.password`; libreria provata sui pooler reali (dettagli
   in `todo.md`, sessione 4);
@@ -98,12 +103,12 @@ JavaScript **CommonJS senza build** (importabile da Strapi CJS e dai backend Fas
 
 | Cartella | Contenuto |
 |---|---|
-| `db/migrations/` | SQL di piattaforma `NNNN_nome.sql`, applicato dall'amministratore per ogni ambiente: `0001` registro, `0002` utenti, `0003` bus, `0004` job `pg_cron`, `0005` contratto v1, `0006` schema `logistics`, `0007` schema `account`, `0008` ComforTables in `tables`, `0009` `public` al sito |
+| `db/migrations/` | SQL di piattaforma `NNNN_nome.sql`, applicato dall'amministratore per ogni ambiente: `0001` registro, `0002` utenti, `0003` bus, `0004` job `pg_cron`, `0005` contratto v1, `0006` schema `logistics`, `0007` schema `account`, `0008` ComforTables in `tables`, `0009` `public` al sito, `0010` iscrizione di ComforTables al bus |
 | `db/rollback/` | script inversi, uno per gruppo di migrazioni (`0009-0008_…`), e `apply.js` che li esegue in una transazione con il lock del runner; lo script toglie dal registro le migrazioni che annulla |
 | `db/runner/` | runner: `files.js` (nomi, checksum), `config.js` (variabili d'ambiente), `runner.js` (registro, piano, `inspect`, `apply`), `roles.js` (`setLogin`, `disableLogin`), `scram.js` (verificatore SCRAM), `cli.js` |
 | `db/probes/` | prove tecniche su Supabase (search_path sul pooler, `session_user`, LISTEN/NOTIFY) con oggetti `probe_` creati ed eliminati a ogni esecuzione; da ripetere prima di ogni replica in un nuovo ambiente |
 | `bus/contract/` | contratto v1: `catalog.json` (fonte unica degli argomenti), `common.schema.json`, `<argomento>/v<N>.schema.json`, `index.js` (validazione Ajv). Export `comfort-platform/contract`. Regole in `bus/contract/README.md` |
-| `bus/client/` | libreria del bus: `publish.js`, `consumer.js` (ascolto verificato, svuotamento, retry, avvisi). Export `comfort-platform`. Uso in `bus/client/README.md` |
+| `bus/client/` | libreria del bus: `publish.js`, `consumer.js` (ascolto verificato, svuotamento, retry, avvisi), `knex.js` (adattatore per le app su knex). Export `comfort-platform`. Uso in `bus/client/README.md` |
 | `testing/` | kit di test per le app: `postgres.js` (Postgres 17 + pg_cron + amministratore non superutente), `platform.js` (`installPlatform`). Export `comfort-platform/testing`. Uso in `testing/README.md` |
 | `data-migrations/` | script una tantum con prova (default) e report: `site-copy/` (righe del sito dal database di oggi a `public`, come `cs_site`). Uso in `data-migrations/README.md` |
 | `docs/` | `prove-tecniche-staging.md`: esiti delle prove tecniche |
@@ -195,7 +200,10 @@ Variabili per ambiente, con `<AMBIENTE>` = nome passato a `--env` in maiuscolo (
   Override: `PG_VERSION` oppure `PG_BIN_DIR`. Senza binari i test falliscono, non vengono saltati.
 - **Lint:** `npm run lint` (ESLint 10 flat config, `eslint.config.js`).
 - **Rollback:** `npm run db:rollback -- db/rollback/<script>.sql --env staging --check` (esegue e annulla), poi senza
-  `--check`. Stesse variabili del runner; dopo, `db:apply` riapplica le migrazioni annullate.
+  `--check`. Stesse variabili del runner; dopo, `db:apply` riapplica le migrazioni annullate. **Va eseguito prima delle
+  migrazioni che lo seguono**: toglie dal registro solo le proprie, e se ne resta una con numero piu' alto il runner si
+  ferma con «ordine per nome violato» invece di riapplicare fuori ordine. Per tornare indietro oltre, annullare in
+  ordine inverso.
 - **Copia del sito:** `npm run data:site-copy -- --from site_live --from-schema <schema> --env staging` (prova), poi con
   `--apply`; `--no-data contact_messages` lascia vuoti i messaggi dei visitatori. Sorgente in `PLATFORM_SITE_LIVE_DATABASE_*`.
 - **Migrazioni:** `npm run db:list -- --env staging`, `npm run db:dry-run -- --env staging`, `npm run db:apply -- --env staging`.

@@ -22,7 +22,8 @@ const FILES = [
   '0006_logistics_schema.sql',
   '0007_account_schema.sql',
   '0008_comfortables_tables_schema.sql',
-  '0009_site_public_schema.sql'
+  '0009_site_public_schema.sql',
+  '0010_comfortables_bus_subscriptions.sql'
 ]
 const PLATFORM_ROLES = ['platform_admin', 'ct_app', 'cs_site', 'cs_account', 'cl_app']
 const BUS_APPS = ['ct_app', 'cs_account', 'cl_app']

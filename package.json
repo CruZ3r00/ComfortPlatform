@@ -1,6 +1,6 @@
 {
   "name": "comfort-platform",
-  "version": "0.6.0",
+  "version": "0.7.0",
   "private": true,
   "description": "Codice di piattaforma ComfortService: migrazioni di piattaforma, bus di messaggi, contratto e migrazioni dati (ADR-0014).",
   "type": "commonjs",
@@ -37,6 +37,7 @@
   "devDependencies": {
     "@eslint/js": "^10.0.1",
     "eslint": "^10.10.0",
-    "globals": "^17.12.0"
+    "globals": "^17.12.0",
+    "knex": "^3.3.0"
   }
 }

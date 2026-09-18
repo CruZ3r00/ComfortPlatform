@@ -96,10 +96,11 @@ test('publish: contratto validato, entita\' e versione ricavate, transazione del
     requestId: REQUEST,
     payload: VALID['tables.bar.preview_requested']
   })
-  // Nessun iscritto di ComforTables nel contratto v1 (le fixture ne aggiungono solo per availability.changed):
-  // il messaggio non viene salvato.
+  // Argomento senza iscritti: il messaggio non viene salvato e publish restituisce null.
+  // ComforTables si iscrive un argomento alla volta, quando ha l'handler corrispondente
+  // (`logistics.link_changed` dalla migrazione 0010), quindi qui serve uno dei rimanenti.
   assert.equal(
-    await publish(bus.cl, 'logistics.link_changed', { schemaVersion: 1, organizationId: ORG, payload: VALID['logistics.link_changed'] }),
+    await publish(bus.cl, 'logistics.alerts.updated', { schemaVersion: 1, organizationId: ORG, payload: VALID['logistics.alerts.updated'] }),
     null
   )
 

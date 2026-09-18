@@ -9,7 +9,7 @@ const path = require('node:path')
 const { ContractError, catalog, getTopic, messageFields, topics, validatePayload } = require('../bus/contract')
 
 const CONTRACT_DIR = path.resolve(__dirname, '..', 'bus', 'contract')
-const { ORG, REQUEST, JWE, dish, dishWithoutIngredients, VALID } = require('./helpers/contract-examples')
+const { ORG, REQUEST, JWE, dish, dishWithoutIngredients, itemVoidedWithItem, VALID } = require('./helpers/contract-examples')
 
 /** Varianti non valide: [descrizione, payload]. */
 const without = (object, key) => {
@@ -27,7 +27,11 @@ const INVALID = {
     ['tipo di servizio sconosciuto', { ...VALID['tables.sales.item_served'], service_type: 'delivery' }],
     ['senza addon_ingredient_refs', without(VALID['tables.sales.item_served'], 'addon_ingredient_refs')]
   ],
-  'tables.sales.item_voided': [['esito sconosciuto', { ...VALID['tables.sales.item_voided'], disposition: 'lost' }]],
+  'tables.sales.item_voided': [['esito sconosciuto', { ...VALID['tables.sales.item_voided'], disposition: 'lost' }],
+    ['quantita senza piatto ne\' nome libero', { ...VALID['tables.sales.item_voided'], quantity: 2 }],
+    ['quantita con piatto e nome entrambi nulli', { ...itemVoidedWithItem, dish_ref: null, freeform_name: null }],
+    ['quantita 0', { ...itemVoidedWithItem, quantity: 0 }],
+    ['aggiunta con spazi', { ...itemVoidedWithItem, addon_ingredient_refs: ['i 1'] }]],
   'tables.bar.reload_done': [['data non ISO', { ...VALID['tables.bar.reload_done'], closed_at: 'ieri' }]],
   'tables.alerts.acknowledge_requested': [['nessun alert', { ...VALID['tables.alerts.acknowledge_requested'], alert_refs: [] }]],
   'logistics.link_changed': [['stato sconosciuto', { status: 'paused' }]],
@@ -142,6 +146,22 @@ test('campi del messaggio: chiave di entita\' con prefisso, versione, organizzaz
   rejects('platform.clock.daily', { organizationId: ORG }, /i messaggi di platform non hanno organizzazione/)
 })
 
+
+// Campi in piu' ammessi (bus/contract/README.md): l'annullo puo' descrivere l'item, cosi'
+// il destinatario scarta dalla ricetta anche un piatto preparato e mai servito, di cui non
+// ha ricevuto item_served (ADR-0015 §15.6). Un produttore che non li invia resta valido.
+test('i campi dell\'item annullato sono facoltativi e non cambiano la versione', () => {
+  assert.equal(validatePayload('tables.sales.item_voided', 1, VALID['tables.sales.item_voided']).valid, true)
+  assert.equal(validatePayload('tables.sales.item_voided', 1, itemVoidedWithItem).valid, true)
+  // Nome libero al posto del piatto, come in item_served.
+  assert.equal(validatePayload('tables.sales.item_voided', 1,
+    { ...itemVoidedWithItem, dish_ref: null, freeform_name: 'Piatto del giorno' }).valid, true)
+  // La quantita' da sola non si sa a che cosa applicarla: e' l'unico vincolo aggiunto.
+  assert.equal(validatePayload('tables.sales.item_voided', 1,
+    { ...VALID['tables.sales.item_voided'], quantity: 1 }).valid, false)
+  assert.deepEqual(getTopic('tables.sales.item_voided').versions, [1])
+  assert.deepEqual(getTopic('tables.sales.item_voided').subscribers, [{ app: 'logistics', schema_version: 1 }])
+})
 
 // Campi in piu' ammessi (bus/contract/README.md): il piatto puo' portare gli ingredienti
 // pubblici per precompilare la ricetta, ma un produttore che non li invia resta valido.

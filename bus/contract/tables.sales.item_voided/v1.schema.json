@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "urn:comfort-platform:bus:tables.sales.item_voided:v1",
   "title": "tables.sales.item_voided v1",
-  "description": "Item annullato o risolto 'waste' / 'not_prepared' al checkout (ADR-0015 §15.6)",
+  "description": "Item annullato o risolto 'waste' / 'not_prepared' al checkout (ADR-0015 §15.6). I campi che descrivono l'item sono facoltativi: senza di essi il destinatario registra l'annullo ma non puo' calcolare lo scarto di un item mai servito",
   "type": "object",
   "required": [
     "item_ref",
@@ -30,6 +30,81 @@
         "preparing",
         "ready",
         "served"
+      ]
+    },
+    "dish_ref": {
+      "anyOf": [
+        {
+          "$ref": "urn:comfort-platform:bus:common#/$defs/ref"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "description": "Piatto annullato. Facoltativo: serve a scartare dalla ricetta un item preparato e mai servito, di cui il destinatario non ha ricevuto item_served"
+    },
+    "freeform_name": {
+      "anyOf": [
+        {
+          "$ref": "urn:comfort-platform:bus:common#/$defs/text"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "description": "Nome scritto a mano, quando l'item non e' un piatto del menu. Facoltativo, come dish_ref"
+    },
+    "quantity": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "Porzioni annullate. Facoltativo; se presente, deve esserci anche il piatto o il nome libero"
+    },
+    "is_beverage": {
+      "type": "boolean",
+      "description": "Una bevanda non ha ancora scaricato nulla al servizio: annullarla non tocca il magazzino (ADR-0015 §15.6, invariante 4)"
+    },
+    "removed_ingredient_refs": {
+      "type": "array",
+      "items": {
+        "$ref": "urn:comfort-platform:bus:common#/$defs/ref"
+      },
+      "minItems": 0,
+      "maxItems": 100,
+      "description": "Ingredienti tolti: non erano nel piatto, quindi non si scartano"
+    },
+    "addon_ingredient_refs": {
+      "type": "array",
+      "items": {
+        "$ref": "urn:comfort-platform:bus:common#/$defs/ref"
+      },
+      "minItems": 0,
+      "maxItems": 100,
+      "description": "Aggiunte preparate: si scartano insieme al piatto"
+    }
+  },
+  "dependentSchemas": {
+    "quantity": {
+      "anyOf": [
+        {
+          "required": [
+            "dish_ref"
+          ],
+          "properties": {
+            "dish_ref": {
+              "$ref": "urn:comfort-platform:bus:common#/$defs/ref"
+            }
+          }
+        },
+        {
+          "required": [
+            "freeform_name"
+          ],
+          "properties": {
+            "freeform_name": {
+              "$ref": "urn:comfort-platform:bus:common#/$defs/text"
+            }
+          }
+        }
       ]
     }
   }

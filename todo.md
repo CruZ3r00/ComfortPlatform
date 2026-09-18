@@ -895,3 +895,53 @@ default, `--no-data`, confronto riga per riga e per sequenza).
   CRLF di due funzioni di staging (i `.sql` sono LF per `.gitattributes`, i confronti normalizzano).
 - Applicate su staging la sera del 17/09 dopo il fermo di ComforTables; ComforTables ripubblicato come `ct_app`.
   Dettagli, esiti e cose rimaste aperte: `../ComfortService/todo.md`, sezione «Fase 1 su staging».
+
+---
+
+## Sessione 8 — `tables.sales.item_voided` descrive anche l'item (2026-09-18)
+
+Richiesta dell'utente dopo la tranche 4 di ComfortLogistics, che ha implementato lo scarico delle vendite e ha
+trovato il buco: il payload v1 descriveva l'**annullo** (`item_ref`, `order_ref`, `disposition`, `previous_status`)
+ma non l'**item**. Un item annullato in `preparing`/`ready`, mai passato per `served`, non è mai arrivato al
+destinatario con un `item_served`: ComfortLogistics non ne conosce piatto, quantità, aggiunte né ingredienti tolti,
+quindi non può calcolare lo scarto dalla ricetta come prescrive ADR-0015 §15.6. In ComforTables il calcolo riesce
+solo perché `applyOnVoid` rilegge il proprio `OrderItem`, cosa che il destinatario non può fare (invariante 1).
+
+- [x] Sei campi **facoltativi** nello schema v1: `dish_ref`, `freeform_name`, `quantity`, `is_beverage`,
+      `removed_ingredient_refs`, `addon_ingredient_refs`, con la stessa forma che hanno in `item_served`.
+- [x] Unico vincolo aggiunto, via `dependentSchemas`: se c'è `quantity` deve esserci anche il piatto **o** il nome
+      libero, entrambi non nulli. Una quantità sola non si sa a che cosa applicarla.
+- [x] Esempio `itemVoidedWithItem` in `tests/helpers/contract-examples.js`; l'esempio del catalogo resta quello
+      minimo, perché i campi sono facoltativi e il payload nudo deve continuare a valere.
+- [x] Quattro casi non validi in `tests/contract.test.js` più un test dedicato alla compatibilità, sul modello di
+      quello di `ingredient_refs`.
+- [x] Versione 0.6.0 in `package.json` **e** in `package-lock.json`.
+
+**Perché resta la versione 1** (ADR-0014 §14.8): campi opzionali in più sono una modifica compatibile. Nessuna
+migrazione di piattaforma, nessuna riga di `bus.topic_versions` o `bus.subscriptions` da toccare, nessun
+destinatario da aggiornare. `catalog.json` non cambia: stesso produttore, stessa chiave di entità `item:<item_ref>`,
+stesse versioni, stessi iscritti — e il test lo verifica esplicitamente. Un produttore che non manda i campi resta
+valido, un destinatario con il pacchetto precedente non rifiuta il messaggio.
+
+### Review sessione 8
+
+Fatto: solo `bus/contract/tables.sales.item_voided/v1.schema.json`, i due file di test, `package.json`,
+`package-lock.json`, `CLAUDE.md` e questo todo. Nessuna migrazione, nessun SQL, nessun database toccato.
+
+Verifiche: **100 test** (erano 99) e lint pulito. Quattro prove "rosso" sullo schema, tutte rosse per il motivo
+giusto: senza `dependentSchemas` la quantità orfana passa; con `minimum: 0` la quantità zero passa; senza il `$ref`
+sugli elementi, un riferimento con spazi passa; e con un `required` senza `$ref` dentro `dependentSchemas` passa
+anche `dish_ref: null` insieme a una quantità — è la prova che serviva il `$ref`, non il solo `required`.
+
+Difetto preesistente corretto per strada: `package-lock.json` era rimasto a **0.4.0** mentre `package.json` era già
+a 0.5.0 dalla sessione 7. Ora entrambi a 0.6.0.
+
+**Da sapere / prossimi passi**
+- **A te il rilascio**: commit e tag `v0.6.0`. Nessuna operazione git è stata eseguita.
+- **ComfortLogistics**: legge già questi campi, validandoli da sé perché lo schema installato (0.5.0) non li
+  conosceva. Dopo il tag va aggiornato il pin della dipendenza (`#v0.5.0` → `#v0.6.0`) e rieseguiti test e build;
+  il comportamento non cambia, cambia solo chi valida i campi. Proposta e dettagli in
+  `../ComfortLogistics/docs/contracts/item-voided-campi-item.md`.
+- **ComforTables**: è il lavoro che resta. Deve pubblicare i campi da `applyOnVoid` e dal checkout con gli stessi
+  valori che usa per il proprio calcolo, altrimenti il ramo resta inattivo e l'annullo di un item mai servito
+  continua a non contabilizzare lo scarto.

@@ -13,6 +13,14 @@ const dish = { dish_ref: 'd1', version: 3, name: 'Margherita', category: 'Pizze'
 const dishWithoutIngredients = { ...dish, ingredient_refs: undefined }
 delete dishWithoutIngredients.ingredient_refs
 const ingredient = { ingredient_ref: 'i1', version: 2, name: 'Mozzarella', allergens: ['latte'], is_addon: true, is_archived: false }
+// Annullo che descrive anche l'item: serve a scartare dalla ricetta un piatto preparato e
+// mai servito, di cui il destinatario non ha ricevuto alcun item_served. I campi sono
+// facoltativi, quindi l'esempio del catalogo resta quello minimo (ADR-0015 §15.6).
+const itemVoidedWithItem = {
+  item_ref: 'it2', order_ref: 'o1', disposition: 'waste', previous_status: 'ready',
+  dish_ref: 'd1', freeform_name: null, quantity: 2, is_beverage: false,
+  removed_ingredient_refs: ['i2'], addon_ingredient_refs: ['i1']
+}
 const alertRow = { article_ref: 'a1', name: 'Mozzarella', unit: 'g', stock_qty: 500, days_to_depletion: 1.5, threshold: null, level: 'warning' }
 
 /** Un payload valido per ogni argomento del catalogo. */
@@ -60,4 +68,4 @@ const VALID = {
   'platform.clock.daily': { date: '2026-09-17' }
 }
 
-module.exports = { ORG, PERSON, REQUEST, JWE, dish, dishWithoutIngredients, ingredient, alertRow, VALID }
+module.exports = { ORG, PERSON, REQUEST, JWE, dish, dishWithoutIngredients, ingredient, itemVoidedWithItem, alertRow, VALID }

@@ -82,6 +82,12 @@ JavaScript **CommonJS senza build** (importabile da Strapi CJS e dai backend Fas
   in `common.schema.json`, per precompilare la ricetta in ComfortLogistics con gli ingredienti pubblici del piatto
   (ADR-0015 §15.4). Modifica compatibile: resta la versione 1 dell'argomento, nessuna migrazione, nessun destinatario
   da aggiornare; le dosi restano di ComfortLogistics. Versione 0.5.0;
+- sessione 8 (scarico delle vendite, dal todo.md di ComfortLogistics): campi facoltativi che descrivono l'item su
+  `tables.sales.item_voided` (`dish_ref`, `freeform_name`, `quantity`, `is_beverage`, `removed_ingredient_refs`,
+  `addon_ingredient_refs`). Il payload descriveva l'annullo ma non l'item, quindi un item preparato e **mai servito**
+  non arrivava mai al destinatario e il ramo «`waste` senza consumi → scarto dalla ricetta» di ADR-0015 §15.6 non era
+  realizzabile. Modifica compatibile: resta la versione 1 dell'argomento, nessuna migrazione, nessun destinatario da
+  aggiornare. L'unico vincolo aggiunto è che una `quantity` senza piatto né nome libero non è valida. Versione 0.6.0;
 - **staging**: migrazioni 0001-0009 applicate il 2026-09-17 (backup prima in `~/backups/comfort/`); `cl_app` e
   `cs_account`, `ct_app` e `cs_site` con login, password in `~/.config/comfortplatform/staging/<ruolo>.password`; libreria provata sui pooler reali (dettagli
   in `todo.md`, sessione 4);

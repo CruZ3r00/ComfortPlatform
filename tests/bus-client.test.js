@@ -97,10 +97,12 @@ test('publish: contratto validato, entita\' e versione ricavate, transazione del
     payload: VALID['tables.bar.preview_requested']
   })
   // Argomento senza iscritti: il messaggio non viene salvato e publish restituisce null.
-  // ComforTables si iscrive un argomento alla volta, quando ha l'handler corrispondente
-  // (`logistics.link_changed` dalla migrazione 0010), quindi qui serve uno dei rimanenti.
+  // Dalla migrazione 0011 ComforTables e' iscritta a tutti gli argomenti di ComfortLogistics,
+  // quindi restano solo quelli dell'account, che aspettano la Fase 2 (OIDC e provisioning).
   assert.equal(
-    await publish(bus.cl, 'logistics.alerts.updated', { schemaVersion: 1, organizationId: ORG, payload: VALID['logistics.alerts.updated'] }),
+    await publish(bus.acc, 'account.provisioning_requested', {
+      schemaVersion: 1, organizationId: ORG, payload: VALID['account.provisioning_requested']
+    }),
     null
   )
 

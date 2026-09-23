@@ -46,7 +46,7 @@ test('0008-0009 su staging: ComforTables in tables di ct_app, public a cs_site; 
   await admin.query('grant select on public.up_users to anon, authenticated')
   await admin.query('grant usage on schema public to public')
 
-  assert.deepEqual((await apply({ client: admin, dir: MIGRATIONS_DIR })).applied, ['0008_comfortables_tables_schema.sql', '0009_site_public_schema.sql', '0010_comfortables_bus_subscriptions.sql'])
+  assert.deepEqual((await apply({ client: admin, dir: MIGRATIONS_DIR })).applied, ['0008_comfortables_tables_schema.sql', '0009_site_public_schema.sql', '0010_comfortables_bus_subscriptions.sql', '0011_comfortables_logistics_subscriptions.sql'])
   const after = await catalog(superuser, 'tables')
   const publicAfter = await catalog(superuser, 'public')
 
@@ -132,12 +132,14 @@ test('0008-0009 rieseguite convergono; rollback riporta tutto com\'era e le migr
   assert.ok(!registered.includes('0008_comfortables_tables_schema.sql'))
   assert.ok(!registered.includes('0009_site_public_schema.sql'))
   assert.ok(registered.includes('0010_comfortables_bus_subscriptions.sql'))
+  assert.ok(registered.includes('0011_comfortables_logistics_subscriptions.sql'))
 
   // Con una migrazione successiva gia' applicata il registro ha un buco, e il runner si
   // **ferma** invece di riapplicare fuori ordine: questo rollback va eseguito prima delle
   // migrazioni che lo seguono, oppure annullando anche quelle.
   await assert.rejects(apply({ client: admin, dir: MIGRATIONS_DIR }), /ordine per nome violato/)
-  await admin.query("delete from platform.migrations where name = '0010_comfortables_bus_subscriptions.sql'")
+  await admin.query(`delete from platform.migrations
+    where name in ('0010_comfortables_bus_subscriptions.sql', '0011_comfortables_logistics_subscriptions.sql')`)
   const { rows: memberships } = await superuser.query(
     `select r.rolname::text as role, a.inherit_option from pg_auth_members a join pg_roles r on r.oid = a.roleid
       where a.member = $1::regrole and a.set_option and r.rolname in ('ct_app', 'cs_site') order by 1`,
@@ -145,7 +147,7 @@ test('0008-0009 rieseguite convergono; rollback riporta tutto com\'era e le migr
   )
   assert.deepEqual(memberships, [{ role: 'cs_site', inherit_option: false }, { role: 'ct_app', inherit_option: false }])
 
-  assert.deepEqual((await apply({ client: admin, dir: MIGRATIONS_DIR })).applied, ['0008_comfortables_tables_schema.sql', '0009_site_public_schema.sql', '0010_comfortables_bus_subscriptions.sql'])
+  assert.deepEqual((await apply({ client: admin, dir: MIGRATIONS_DIR })).applied, ['0008_comfortables_tables_schema.sql', '0009_site_public_schema.sql', '0010_comfortables_bus_subscriptions.sql', '0011_comfortables_logistics_subscriptions.sql'])
   assert.deepEqual({ public: await catalog(superuser, 'public'), tables: await catalog(superuser, 'tables') }, after)
 
   // Con il sito gia' copiato in public il rollback si ferma senza toccare nulla.

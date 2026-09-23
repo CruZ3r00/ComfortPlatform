@@ -995,3 +995,56 @@ va eseguito prima delle migrazioni che lo seguono, oppure annullando anche quell
 - **ComforTables**: dipendenza `#v0.7.0`, tabella `logistics_links` alimentata dall'handler `link_changed`, coda
   `logistics_outbox` e produttore delle vendite. Piano in `../ComforTables/todo.md`, «Fase 5».
 - **ComfortLogistics**: nulla da fare. Resta su `#v0.6.0`: 0.7.0 non cambia nulla di ciò che usa.
+
+## Sessione 10 — Iscrizione di ComforTables ai quattro argomenti di ComfortLogistics (2026-09-19)
+
+ComforTables ha scritto ieri il produttore del catalogo (che non richiede iscrizioni: ComfortLogistics era
+gia' iscritta a `tables.catalog.*`) e ora ha bisogno di **ricevere**. Qui c'e' solo la parte di piattaforma.
+
+- [x] Migrazione `0011_comfortables_logistics_subscriptions.sql`: `comfortables` iscritta a
+      `logistics.catalog.snapshot_requested`, `logistics.availability.changed`, `logistics.alerts.updated`,
+      `logistics.bar.preview_ready` (v1), con `on conflict do nothing` come la `0010`.
+- [x] `bus/contract/catalog.json`: gli stessi quattro `subscribers`, perche' `platform-migrations.test.js`
+      verifica che `bus.subscriptions` e il catalogo coincidano riga per riga.
+- [x] Versione 0.8.0 in `package.json` e `package-lock.json`.
+
+**Perche' tutti e quattro insieme.** La regola «handler prima dell'iscrizione» ha un rovescio che era in
+vigore proprio qui: un argomento **senza iscritti** e' peggio di uno iscritto e non gestito, perche'
+`bus.publish` restituisce `null` e il messaggio **non viene nemmeno conservato** (nessuna riga in
+`bus.messages`, nessuna consegna da ritentare). E' quello che accadeva a «Importa da ComforTables»: il
+pulsante pubblicava una domanda che svaniva nello stesso istante. Gli handler nascono nello stesso passo in
+ComforTables, quindi iscrizione e gestione arrivano insieme e nessuna consegna fallisce.
+
+**Due test dicevano qualcosa che ha smesso di essere vero, aggiornati e non rilassati:**
+- `contract.test.js` fissava `byApp.comfortables = ['logistics.link_changed']`: ora l'elenco esatto dei
+  cinque, cosi' un'iscrizione registrata per sbaglio si vede ancora;
+- `bus-client.test.js` usava `logistics.alerts.updated` come esempio di argomento **senza iscritti**
+  (era il sostituto scelto nella sessione 9, quando `link_changed` ne aveva presi). Dalla `0011` nessun
+  argomento di ComfortLogistics e' piu' senza iscritti: restano solo quelli dell'account, che aspettano la
+  Fase 2. Sostituito con `account.provisioning_requested`, pubblicato come `cs_account`.
+- `comfortables-schema.test.js` e `platform-migrations.test.js`: elenchi delle migrazioni applicate. Nel
+  primo, la pulizia del registro prima del riapply ora toglie **0010 e 0011**: con un buco il runner si
+  ferma per «ordine per nome violato», che e' esattamente cio' che il test verifica due righe sopra.
+
+### Review sessione 10
+
+Verifiche: **107 test** e lint pulito. La `0011` e' provata anche dal lato di chi la usa: ComforTables
+ha eseguito il percorso reale a due applicazioni sulle migrazioni di **questo sorgente** (non su quelle
+del pacchetto installato), con ComfortLogistics vero — attivazione, «Importa», disponibilita' e alert da
+movimenti reali, archiviazione andata e ritorno, riepilogo del bar — e nessuna consegna ferma.
+
+**Un test intermittente, non introdotto qui.** Al primo giro della suite completa
+`probes.test.js` «cleanup dopo un'interruzione, con il pooler che riapre le sessioni terminate» e' caduto su
+`pooled.refused === '28000'` (era `null`): la riapertura della sessione non era stata rifiutata, cioe' era
+arrivata prima che il login fosse disattivato. Verde al secondo giro della suite e verde due volte di
+seguito eseguito da solo, quindi e' una corsa che si vede solo sotto carico. Non l'ho toccato: e' fuori dal
+mandato di questa sessione e non ho una diagnosi certa, ma vale la pena guardarlo prima che diventi rumore
+da scavalcare.
+
+**Da sapere / prossimi passi**
+- **A te il rilascio**: commit e tag `v0.8.0`. Nessuna operazione git eseguita.
+- **ComforTables**: dopo il tag, `npm install` per spostare la dipendenza da `#v0.7.0` a `#v0.8.0` (il
+  lockfile fissa il commit, non il nome del tag). I quattro handler, le tabelle della proiezione degli
+  alert e della risposta del bar, e i loro lettori sono il passo 7 in `../ComforTables/todo.md`.
+- **ComfortLogistics**: nulla da fare. La 0.8.0 non cambia niente di cio' che usa; l'effetto lo vedra' dal
+  bus, perche' le sue richieste finalmente trovano qualcuno che le conserva.

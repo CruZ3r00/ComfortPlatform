@@ -98,8 +98,13 @@ test('catalogo: coerenza di produttore, destinatari, iscrizioni, chiavi e riserv
     for (const subscription of topic.subscribers) (byApp[subscription.app] ||= []).push(topic.name)
   }
   assert.deepEqual(Object.keys(byApp).sort(), ['comfortables', 'logistics'])
-  assert.deepEqual(byApp.comfortables, ['logistics.link_changed'],
-    'ComforTables si iscrive agli altri argomenti quando avra\' gli handler: un argomento iscritto e non gestito fa fallire le consegne')
+  assert.deepEqual(byApp.comfortables, [
+    'logistics.link_changed',
+    'logistics.catalog.snapshot_requested',
+    'logistics.availability.changed',
+    'logistics.alerts.updated',
+    'logistics.bar.preview_ready'
+  ], 'un argomento iscritto e non gestito fa fallire le consegne, uno senza iscritti non viene nemmeno conservato: handler e iscrizione vanno insieme')
   assert.equal(byApp.logistics.length, 14)
   assert.equal(catalog.topics, topics)
 })

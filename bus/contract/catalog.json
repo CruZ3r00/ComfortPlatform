@@ -235,7 +235,12 @@
       "recipients": [
         "comfortables"
       ],
-      "subscribers": []
+      "subscribers": [
+        {
+          "app": "comfortables",
+          "schema_version": 1
+        }
+      ]
     },
     {
       "name": "logistics.availability.changed",
@@ -255,7 +260,12 @@
       "recipients": [
         "comfortables"
       ],
-      "subscribers": []
+      "subscribers": [
+        {
+          "app": "comfortables",
+          "schema_version": 1
+        }
+      ]
     },
     {
       "name": "logistics.alerts.updated",
@@ -275,7 +285,12 @@
       "recipients": [
         "comfortables"
       ],
-      "subscribers": []
+      "subscribers": [
+        {
+          "app": "comfortables",
+          "schema_version": 1
+        }
+      ]
     },
     {
       "name": "logistics.bar.preview_ready",
@@ -292,7 +307,12 @@
       "recipients": [
         "comfortables"
       ],
-      "subscribers": []
+      "subscribers": [
+        {
+          "app": "comfortables",
+          "schema_version": 1
+        }
+      ]
     },
     {
       "name": "logistics.notifications.email_requested",

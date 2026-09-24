@@ -1152,3 +1152,76 @@ Scelte dichiarate:
 - **La copia del magazzino** si esegue dopo la migrazione degli account, con backup prima di `--apply`.
 - **ComforTables**: dopo il tag, `npm install` per passare la dipendenza a `#v0.9.0`.
 
+
+## Sessione 12 — Iscrizione di ComforTables agli argomenti dell'account, `provisioning_requested` v2 (2026-09-24)
+
+Richiesta dell'utente (da `../ComfortService/todo.md`, Passo 3, punto 1): piano D+F dell'accesso unico approvato il
+24/09 con P7 e l'autorizzazione A2 («Approvo i raccomandati e autorizzo»). La sessione 11 e' chiusa: v0.9.0 committata
+e taggata dall'utente. Nessuna operazione git; il tag `v0.10.0` lo fa l'utente.
+
+**Perche'.** ComforTables diventa client dell'accesso unico (sessione D) e deve ricevere dall'account:
+- `session_ended` (revoca delle sessioni del titolare, P3);
+- `password_changed` (hash predefinito dello staff, JWE);
+- `person_changed` (copia di email e nome);
+- `organization_changed` (attivita' cancellata → sospensione);
+- `provisioning_requested` (attivita' nuova collegata a ComforTables).
+
+Oggi `comfortables` non e' iscritta a nessuno: `bus.publish` restituisce `null` e il messaggio non esiste nemmeno.
+`entitlements_changed` resta alla Fase 3, quando ComforTables applichera' i diritti: un argomento iscritto e non
+gestito fa fallire le consegne.
+
+**P7, `provisioning_requested` v2.** La v1 richiede `plan_code` testo, ma prima dei piani (Fase 3) il piano non
+esiste. L'account la pubblichera' al primo collegamento di un'attivita' a ComforTables, con l'hash cifrato dello
+staff. Nella v2 `plan_code` resta **obbligatorio ma puo' essere `null`** (= nessun piano): un campo assente e uno
+nullo non si confondono. Il resto e' identico alla v1. E' una modifica incompatibile, quindi versione nuova e non
+un campo opzionale. La v1 resta registrata: non ha iscritti ne' messaggi e non e' mai stata prodotta. Toglierla e'
+una pulizia a parte.
+
+**Ordine sugli ambienti (da scrivere nella migrazione).** Il consumatore di ComforTables fa fallire (e poi blocca
+l'entita') un argomento senza handler, e una versione che il suo pacchetto non conosce. La `0013` si applica quindi a
+un ambiente solo quando li' gira ComforTables con gli handler della sessione D e il pacchetto >= 0.10.0. Su staging,
+dove l'account pubblica gia' `session_ended`, prima il deploy e poi la migrazione.
+
+- [x] `bus/contract/account.provisioning_requested/v2.schema.json`; `catalog.json`: versioni `[1, 2]` e le cinque
+      iscrizioni di `comfortables` (v2 per il provisioning, v1 per le altre).
+- [x] `db/migrations/0013_comfortables_account_subscriptions.sql`: registra la v2 e le iscrizioni, identica al catalogo.
+- [x] Test:
+  - [x] `platform-migrations` (elenco dei file; database = catalogo);
+  - [x] `comfortables-schema` (rollback 0009-0008 con le migrazioni successive);
+  - [x] `contract` (elenco delle iscrizioni di `comfortables`; esempio v2 valido con `plan_code` nullo e testo,
+        v2 senza `plan_code` e con hash in chiaro rifiutati; v1 invariata).
+- [x] Versione 0.10.0 (`package.json`, `package-lock.json`), `CLAUDE.md` (stato, struttura), review qui sotto.
+- [x] `npm test` due volte e `npm run lint`; prove rosse sulla migrazione e sullo schema v2.
+
+### Review sessione 12
+
+**Fatto.**
+- `account.provisioning_requested/v2.schema.json`: uguale alla v1, ma `plan_code` e' `text` oppure `null`, sempre
+  presente.
+- `catalog.json`: versioni `[1, 2]` e cinque iscrizioni di `comfortables`, `provisioning_requested` alla v2 e le
+  altre alla v1. Confrontato con la copia 0.8.0 installata in ComforTables: cambiano solo queste righe.
+- `0013_comfortables_account_subscriptions.sql`: registra la v2 e le iscrizioni. Nell'intestazione l'ordine sugli
+  ambienti: prima il deploy di ComforTables con gli handler, poi la migrazione.
+- Test aggiornati (elenco dei file, rollback 0009-0008 con le successive, iscrizioni di `comfortables`) e un test
+  nuovo per la v2.
+- Versione 0.10.0; `CLAUDE.md`; due lezioni.
+
+**Verifiche.**
+- `npm test`: **118/118**, due giri completi di fila; `npm run lint` pulito.
+- Prove rosse, 6 su 6 cadute per il motivo atteso:
+  - dalla migrazione: senza un'iscrizione, senza la registrazione della v2 (violazione di FK), con iscrizione alla
+    v1 → cade il confronto database-catalogo;
+  - dallo schema v2: `plan_code` non obbligatorio, `plan_code` senza `null` → cade solo il test v2;
+  - dal catalogo: senza `comfortables` su `password_changed` → cade la coerenza delle iscrizioni.
+  - Il primo giro aveva i backup `.bak` nel repository, e le prove cadevano per il file in piu'. Rifatte con i backup
+    fuori (vedi lessons). File ripristinati con sha256 uguale, nessun `.bak` rimasto.
+
+**Da sapere.**
+- **Vincolo violato:** in una riga di controllo e' rimasto un `git -C . --version`. Non ha letto ne' modificato il
+  repository, ma il vincolo «mai git» non ha eccezioni: segnalato all'utente e scritto nelle lessons.
+- **A te il rilascio:** commit e tag `v0.10.0`. Poi l'aggiornamento della dipendenza in ComfortService e in
+  ComforTables, dove la v0.9.0 non e' ancora installata.
+- **Staging:** non applicare `0013` finche' ComforTables con gli handler della sessione D non e' in funzione li'.
+  L'account su staging pubblica gia' `session_ended`: senza handler le consegne a `comfortables` morirebbero, con
+  blocco ed email di avviso.
+

@@ -25,7 +25,8 @@ const FILES = [
   '0009_site_public_schema.sql',
   '0010_comfortables_bus_subscriptions.sql',
   '0011_comfortables_logistics_subscriptions.sql',
-  '0012_bus_replay.sql'
+  '0012_bus_replay.sql',
+  '0013_comfortables_account_subscriptions.sql'
 ]
 const PLATFORM_ROLES = ['platform_admin', 'ct_app', 'cs_site', 'cs_account', 'cl_app']
 const BUS_APPS = ['ct_app', 'cs_account', 'cl_app']

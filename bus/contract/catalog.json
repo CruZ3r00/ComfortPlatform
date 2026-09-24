@@ -343,7 +343,8 @@
       "sensitive": true,
       "retention_days": 30,
       "versions": [
-        1
+        1,
+        2
       ],
       "entity": {
         "prefix": "organization",
@@ -354,7 +355,12 @@
       "recipients": [
         "comfortables"
       ],
-      "subscribers": []
+      "subscribers": [
+        {
+          "app": "comfortables",
+          "schema_version": 2
+        }
+      ]
     },
     {
       "name": "account.entitlements_changed",
@@ -400,7 +406,12 @@
       "recipients": [
         "comfortables"
       ],
-      "subscribers": []
+      "subscribers": [
+        {
+          "app": "comfortables",
+          "schema_version": 1
+        }
+      ]
     },
     {
       "name": "account.organization_changed",
@@ -425,6 +436,10 @@
         {
           "app": "logistics",
           "schema_version": 1
+        },
+        {
+          "app": "comfortables",
+          "schema_version": 1
         }
       ]
     },
@@ -447,6 +462,10 @@
       "subscribers": [
         {
           "app": "logistics",
+          "schema_version": 1
+        },
+        {
+          "app": "comfortables",
           "schema_version": 1
         }
       ]
@@ -473,6 +492,10 @@
       "subscribers": [
         {
           "app": "logistics",
+          "schema_version": 1
+        },
+        {
+          "app": "comfortables",
           "schema_version": 1
         }
       ]

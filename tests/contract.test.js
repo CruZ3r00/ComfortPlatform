@@ -103,7 +103,12 @@ test('catalogo: coerenza di produttore, destinatari, iscrizioni, chiavi e riserv
     'logistics.catalog.snapshot_requested',
     'logistics.availability.changed',
     'logistics.alerts.updated',
-    'logistics.bar.preview_ready'
+    'logistics.bar.preview_ready',
+    'account.provisioning_requested',
+    'account.password_changed',
+    'account.organization_changed',
+    'account.session_ended',
+    'account.person_changed'
   ], 'un argomento iscritto e non gestito fa fallire le consegne, uno senza iscritti non viene nemmeno conservato: handler e iscrizione vanno insieme')
   assert.equal(byApp.logistics.length, 14)
   assert.equal(catalog.topics, topics)
@@ -184,4 +189,24 @@ test('ingredient_refs del piatto e\' facoltativo e non cambia la versione', () =
   assert.equal(validatePayload('tables.catalog.snapshot', 1,
     { chunk_index: 0, chunk_count: 1, dishes: [dishWithoutIngredients], ingredients: [] }).valid, true)
   assert.deepEqual(getTopic('tables.catalog.dish_changed').versions, [1])
+})
+
+// P7 del piano dell'accesso unico (0013): prima dei piani l'account chiede la creazione in ComforTables senza un
+// piano. Nella v2 `plan_code` e' obbligatorio ma puo' essere null; la v1 non cambia.
+test('account.provisioning_requested v2: plan_code obbligatorio, nullo prima dei piani; v1 invariata', () => {
+  const name = 'account.provisioning_requested'
+  const withPlan = VALID[name]
+  const noPlan = { ...withPlan, plan_code: null }
+  assert.deepEqual(getTopic(name).versions, [1, 2])
+  assert.deepEqual(validatePayload(name, 2, noPlan), { valid: true, errors: [] })
+  assert.equal(validatePayload(name, 2, withPlan).valid, true)
+  assert.equal(validatePayload(name, 2, { ...noPlan, campo_futuro: 'opzionale' }).valid, true)
+  assert.equal(validatePayload(name, 2, without(withPlan, 'plan_code')).valid, false, 'plan_code assente')
+  assert.equal(validatePayload(name, 2, { ...noPlan, plan_code: '' }).valid, false, 'plan_code vuoto')
+  assert.equal(validatePayload(name, 2, { ...noPlan, staff_default_password_hash: '$2b$10$abcdefghijklmnopqrstuv' }).valid, false, 'hash in chiaro')
+  assert.equal(validatePayload(name, 1, noPlan).valid, false, 'la v1 resta con il piano obbligatorio')
+  assert.deepEqual(
+    messageFields(name, { organizationId: ORG, payload: noPlan }),
+    { entityRef: `organization:${ORG}`, entityVersion: null }
+  )
 })

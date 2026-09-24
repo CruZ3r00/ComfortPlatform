@@ -129,3 +129,21 @@ workspace restano in `../ComforTables/lessons.md`.
   ruolo con un altro codice.
 - REGOLA: per una corsa, prima renderla deterministica (qui: ritardo di 300 ms nella riapertura) e solo dopo
   correggere; e provare la proprieta' vera (nessuna riapertura riuscita), non un dettaglio che dipende dai tempi.
+
+## 2026-09-24 - Una prova rosso rossa per il motivo sbagliato non prova niente
+
+- ERRORE (sessione 12): le copie di backup delle prove rosse stavano accanto al file mutato
+  (`v2.schema.json.bak` in `bus/contract/<argomento>/`, `0013_….sql.bak` in `db/migrations/`). Il test del catalogo
+  segnala gli schemi orfani e il runner si ferma sui nomi fuori formato: le prove sono cadute tutte, ma per il file
+  in piu', non per la regola rotta. L'ho visto perche' il test fallito era un altro da quello atteso.
+- REGOLA: i backup delle mutazioni vanno fuori dal repository (scratch). Per ogni prova rossa verificare *quale*
+  test cade e *perche'* (nome del test e messaggio attesi), non solo l'exit code. Ripetute cosi', tutte e sei cadono
+  per il motivo giusto.
+
+## 2026-09-24 - «Mai git» vale anche per i comandi che non leggono il repository
+
+- ERRORE (sessione 12): in una riga di controllo e' rimasto un `git -C . --version`, senza utilita' e contro il
+  vincolo del workspace («mai git, nemmeno indirettamente»). Non ha letto ne' modificato il repository, ma il vincolo
+  non ha eccezioni ed e' stato segnalato all'utente.
+- REGOLA: nessuna invocazione di `git`, neanche `--version` o dentro una riga composta. Prima di eseguire un comando
+  lungo, rileggerlo cercando `git`.

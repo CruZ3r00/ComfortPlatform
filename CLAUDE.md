@@ -93,6 +93,10 @@ JavaScript **CommonJS senza build** (importabile da Strapi CJS e dai backend Fas
   iscrive **ComforTables** a `logistics.link_changed` — il presupposto del produttore, perche' senza lo stato del
   collegamento ComforTables non sa per quali organizzazioni pubblicare. Gli altri argomenti di ComfortLogistics si
   iscrivono quando ComforTables avra' gli handler. Versione 0.7.0;
+- sessione 11 (dal todo.md di ComforTables, passo 9): `0012` **rigioco delle consegne `dead`** (`bus.replay`, solo
+  amministratore) e comando `bus-replay` del runner; **copia del magazzino** `data-migrations/logistics-copy` (ADR-0015
+  §15.13, da eseguire dopo la migrazione degli account); test intermittente di `probes.test.js` corretto. Versione
+  0.9.0;
 - **staging**: migrazioni 0001-0009 applicate il 2026-09-17 (backup prima in `~/backups/comfort/`); `cl_app` e
   `cs_account`, `ct_app` e `cs_site` con login, password in `~/.config/comfortplatform/staging/<ruolo>.password`; libreria provata sui pooler reali (dettagli
   in `todo.md`, sessione 4);
@@ -103,16 +107,16 @@ JavaScript **CommonJS senza build** (importabile da Strapi CJS e dai backend Fas
 
 | Cartella | Contenuto |
 |---|---|
-| `db/migrations/` | SQL di piattaforma `NNNN_nome.sql`, applicato dall'amministratore per ogni ambiente: `0001` registro, `0002` utenti, `0003` bus, `0004` job `pg_cron`, `0005` contratto v1, `0006` schema `logistics`, `0007` schema `account`, `0008` ComforTables in `tables`, `0009` `public` al sito, `0010` iscrizione di ComforTables al bus |
+| `db/migrations/` | SQL di piattaforma `NNNN_nome.sql`, applicato dall'amministratore per ogni ambiente: `0001` registro, `0002` utenti, `0003` bus, `0004` job `pg_cron`, `0005` contratto v1, `0006` schema `logistics`, `0007` schema `account`, `0008` ComforTables in `tables`, `0009` `public` al sito, `0010`-`0011` iscrizioni di ComforTables al bus, `0012` rigioco delle consegne scartate |
 | `db/rollback/` | script inversi, uno per gruppo di migrazioni (`0009-0008_…`), e `apply.js` che li esegue in una transazione con il lock del runner; lo script toglie dal registro le migrazioni che annulla |
-| `db/runner/` | runner: `files.js` (nomi, checksum), `config.js` (variabili d'ambiente), `runner.js` (registro, piano, `inspect`, `apply`), `roles.js` (`setLogin`, `disableLogin`), `scram.js` (verificatore SCRAM), `cli.js` |
+| `db/runner/` | runner: `files.js` (nomi, checksum), `config.js` (variabili d'ambiente), `runner.js` (registro, piano, `inspect`, `apply`), `roles.js` (`setLogin`, `disableLogin`), `scram.js` (verificatore SCRAM), `replay.js` (consegne `dead`: elenco e rigioco), `cli.js` |
 | `db/probes/` | prove tecniche su Supabase (search_path sul pooler, `session_user`, LISTEN/NOTIFY) con oggetti `probe_` creati ed eliminati a ogni esecuzione; da ripetere prima di ogni replica in un nuovo ambiente |
 | `bus/contract/` | contratto v1: `catalog.json` (fonte unica degli argomenti), `common.schema.json`, `<argomento>/v<N>.schema.json`, `index.js` (validazione Ajv). Export `comfort-platform/contract`. Regole in `bus/contract/README.md` |
 | `bus/client/` | libreria del bus: `publish.js`, `consumer.js` (ascolto verificato, svuotamento, retry, avvisi), `knex.js` (adattatore per le app su knex). Export `comfort-platform`. Uso in `bus/client/README.md` |
 | `testing/` | kit di test per le app: `postgres.js` (Postgres 17 + pg_cron + amministratore non superutente), `platform.js` (`installPlatform`). Export `comfort-platform/testing`. Uso in `testing/README.md` |
-| `data-migrations/` | script una tantum con prova (default) e report: `site-copy/` (righe del sito dal database di oggi a `public`, come `cs_site`). Uso in `data-migrations/README.md` |
+| `data-migrations/` | script una tantum con prova (default) e report: `site-copy/` (righe del sito dal database di oggi a `public`, come `cs_site`), `logistics-copy/` (magazzino di ComforTables da `tables` a `logistics`, ADR-0015 §15.13). Uso in `data-migrations/README.md` |
 | `docs/` | `prove-tecniche-staging.md`: esiti delle prove tecniche |
-| `tests/` | `node:test` sul kit `testing/`; `tests/helpers/platform.js`: fixture del bus e consumatore SQL di riferimento; `tests/helpers/contract-examples.js`: un payload valido per argomento; `tests/helpers/comfortables.js`: staging prima della Fase 1 (fixture della struttura di `public`, ruoli e publication di Supabase) e fotografia del catalogo; `tests/fixtures/`: strutture reali (ComforTables su staging, sito dopo le sue migrazioni 001-017) |
+| `tests/` | `node:test` sul kit `testing/`; `tests/helpers/platform.js`: fixture del bus e consumatore SQL di riferimento; `tests/helpers/contract-examples.js`: un payload valido per argomento; `tests/helpers/comfortables.js`: staging prima della Fase 1 (fixture della struttura di `public`, ruoli e publication di Supabase) e fotografia del catalogo; `tests/fixtures/`: strutture reali (ComforTables su staging, sito dopo le sue migrazioni 001-017, ComfortLogistics dopo le sue 0001-0006) |
 
 ## Invarianti (ADR-0014 §4)
 

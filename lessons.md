@@ -106,3 +106,26 @@ workspace restano in `../ComforTables/lessons.md`.
   compariva nella sua riga di comando (uscita 144).
 - REGOLA: trovare prima il PID con `ps -eo pid,args | grep '[c]l-app.js'` (la parentesi evita di trovare grep stesso) e
   terminare quel PID; per i processi avviati in background usare lo strumento di stop del task.
+
+## 2026-09-24 - Un test che finge un contesto deve fingerne anche la pulizia
+
+- ERRORE: il test di `logistics-copy` passava a `stagingBeforePhase1` un finto `t` con `after: () => {}`. L'helper
+  registra con `t.after` la rimozione della cartella temporanea delle migrazioni: con un `after` vuoto ogni esecuzione
+  lasciava una `comfortplatform-migrazioni-*` in `/tmp`, venti in una giornata di prove rosse.
+- REGOLA: quando si passa un contesto finto a un helper, i suoi callback si raccolgono e si eseguono nell'`after` del
+  file. Dopo ogni file nuovo controllare `ls -d /tmp/comfortplatform-*`, come per i cluster.
+
+## 2026-09-24 - Una prova rosso verde perche' il caso non c'era
+
+- ERRORE: la prova «nessun allineamento a meta' catena» sulla copia del magazzino restava verde. Non per un test
+  debole ma per una fixture povera: l'unico buco nella catena era alla fine, gestito da un altro ramo.
+- REGOLA: una prova rosso verde puo' voler dire che il ramo non e' mai eseguito. Prima di concludere che la garanzia
+  la tiene altro, controllare che i dati di prova attraversino davvero il ramo rotto.
+
+## 2026-09-24 - Un test intermittente si riproduce prima di correggerlo
+
+- ERRORE (del test, dal 19/09): `probes.test.js` controllava il rifiuto della riapertura subito dopo il `cleanup`,
+  mentre il tentativo era ancora in volo. Aspettarlo e basta non bastava: finito tardi, arriva dopo l'eliminazione del
+  ruolo con un altro codice.
+- REGOLA: per una corsa, prima renderla deterministica (qui: ritardo di 300 ms nella riapertura) e solo dopo
+  correggere; e provare la proprieta' vera (nessuna riapertura riuscita), non un dettaglio che dipende dai tempi.

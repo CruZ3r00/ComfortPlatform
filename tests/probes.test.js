@@ -9,6 +9,7 @@ const { Report, createContext } = require('../db/probes/context')
 const { APPLICATION_NAME, makeEndpoint, supabaseEndpoints } = require('../db/probes/endpoints')
 const { ROLE_A, findProbeObjects, setup } = require('../db/probes/objects')
 const { runProbes } = require('../db/probes/run')
+const { waitFor } = require('./helpers/platform')
 
 // Postgres locale: pooler di sessione, pooler di transazione e diretta sono lo stesso server. Le
 // prove verificano il funzionamento degli script, non il comportamento di Supavisor.
@@ -40,14 +41,17 @@ async function createAdmin(name, { signalBackend }) {
 
 /**
  * Sessione di un ruolo come la tiene Supavisor: se viene terminata, la riapre subito finche' il
- * login lo consente. `refused` e' il codice dell'ultima riapertura rifiutata.
+ * login lo consente. `refused` e' il codice dell'ultima riapertura rifiutata, `reopened` quante
+ * riaperture sono riuscite.
  */
 function poolerLikeSession(config) {
-  const session = { client: null, stopped: false, refused: null }
+  const session = { client: null, stopped: false, refused: null, reopened: 0, opened: false }
   const open = async () => {
     const client = new pg.Client(config)
     client.on('error', () => {})
     await client.connect()
+    if (session.opened) session.reopened += 1
+    session.opened = true
     session.client = client
     client.once('end', () => {
       if (!session.stopped) open().catch((err) => (session.refused = err.code))
@@ -142,11 +146,18 @@ test('cleanup dopo un\'interruzione, con il pooler che riapre le sessioni termin
 
   const report = silentReport()
   await runProbes('cleanup', { endpoints: localEndpoints(), report })
+  // La riapertura del «pooler» parte dall'evento `end` del client ed e' asincrona. Sotto carico non si era ancora
+  // conclusa quando il test controllava (`refused` null, 2026-09-19), oppure si concludeva dopo l'eliminazione del
+  // ruolo, con un altro codice (`28P01`): riprodotto ritardandola di 300 ms. Si aspetta che finisca, e si prova la
+  // proprieta' vera: il pooler non e' mai riuscito a riaprire, perche' il login era gia' disattivato quando la
+  // sessione e' stata terminata. Con l'ordine sbagliato la riapertura riesce e il test cade.
+  await waitFor(() => pooled.refused !== null || pooled.reopened > 0, { timeoutMs: 10000, message: 'riapertura del pooler non conclusa' })
   await pooled.stop()
   assert.deepEqual(levels(report, 'KO'), [])
   assert.ok(levels(report, 'INFO').some((r) => r.text === `${ROLE_A}: login disattivato, 1 sessioni residue terminate`))
-  // La riapertura e' stata rifiutata: il login era gia' disattivato prima della terminazione.
-  assert.equal(pooled.refused, '28000')
+  assert.equal(pooled.reopened, 0, 'il pooler ha riaperto una sessione del ruolo')
+  // Rifiutata: login disattivato (28000) o, se la riapertura arriva dopo la pulizia, ruolo gia' eliminato (28P01).
+  assert.ok(['28000', '28P01'].includes(pooled.refused), `riapertura rifiutata con ${pooled.refused}`)
   await assertNoProbeObjects()
 
   const again = silentReport()

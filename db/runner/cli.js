@@ -9,6 +9,8 @@
  *   node db/runner/cli.js apply   --env <ambiente>   applica le migrazioni in attesa
  *   node db/runner/cli.js role-login   <ruolo> --env <ambiente>   LOGIN e password (da stdin in pipe)
  *   node db/runner/cli.js role-disable <ruolo> --env <ambiente>   NOLOGIN e chiusura delle sessioni
+ *   node db/runner/cli.js bus-replay <app> [--message <uuid>] --env <ambiente> [--apply]
+ *       consegne scartate (dead) dell'app: elenco; con --apply rimesse in coda (0012)
  *
  * Carica `.env` dalla root del repository se esiste; le variabili gia' presenti nell'ambiente
  * del processo hanno la precedenza. Uscita 0 se tutto e' in ordine, 1 altrimenti.
@@ -19,35 +21,46 @@ const pg = require('pg')
 const { connectionFromEnv } = require('./config')
 const { inspect, apply } = require('./runner')
 const { checkPassword, checkRole, disableLogin, setLogin } = require('./roles')
+const { formatDead, listDead, replay } = require('./replay')
 
 const ROOT = path.resolve(__dirname, '..', '..')
 const MIGRATIONS_DIR = path.join(ROOT, 'db', 'migrations')
 const MIGRATION_COMMANDS = ['list', 'dry-run', 'apply']
 const ROLE_COMMANDS = ['role-login', 'role-disable']
+const BUS_COMMANDS = ['bus-replay']
 const USAGE = [
   'Uso:',
   `  node db/runner/cli.js <${MIGRATION_COMMANDS.join('|')}> --env <ambiente>`,
   '  node db/runner/cli.js role-login <ruolo> --env <ambiente>     (password da stdin in pipe)',
-  '  node db/runner/cli.js role-disable <ruolo> --env <ambiente>'
+  '  node db/runner/cli.js role-disable <ruolo> --env <ambiente>',
+  '  node db/runner/cli.js bus-replay <app> [--message <uuid>] --env <ambiente> [--apply]'
 ].join('\n')
 
 function parseArgs(argv) {
   const [command, ...rest] = argv
+  const isBusCommand = BUS_COMMANDS.includes(command)
   let env
+  let messageId = null
+  let applyReplay = false
   const positional = []
   for (let i = 0; i < rest.length; i++) {
     const arg = rest[i]
     if (arg === '--env' && i + 1 < rest.length) env = rest[++i]
     else if (arg.startsWith('--env=')) env = arg.slice('--env='.length)
+    else if (isBusCommand && arg === '--message' && i + 1 < rest.length) messageId = rest[++i]
+    else if (isBusCommand && arg === '--apply') applyReplay = true
     else if (!arg.startsWith('-')) positional.push(arg)
     else throw new Error(`Argomento non riconosciuto: ${arg}\n${USAGE}`)
   }
   const isRoleCommand = ROLE_COMMANDS.includes(command)
-  if (!isRoleCommand && !MIGRATION_COMMANDS.includes(command)) throw new Error(USAGE)
-  if (positional.length !== (isRoleCommand ? 1 : 0)) {
-    throw new Error(`${isRoleCommand ? 'Indica un solo ruolo' : `Argomento non riconosciuto: ${positional[0]}`}\n${USAGE}`)
+  if (!isRoleCommand && !isBusCommand && !MIGRATION_COMMANDS.includes(command)) throw new Error(USAGE)
+  const needsName = isRoleCommand || isBusCommand
+  if (positional.length !== (needsName ? 1 : 0)) {
+    const what = isBusCommand ? 'Indica una sola app' : isRoleCommand ? 'Indica un solo ruolo' : `Argomento non riconosciuto: ${positional[0]}`
+    throw new Error(`${what}\n${USAGE}`)
   }
   if (!env) throw new Error(`Manca --env: l'ambiente va sempre indicato.\n${USAGE}`)
+  if (isBusCommand) return { command, env, app: positional[0], messageId, applyReplay }
   return { command, env, role: positional[0] }
 }
 
@@ -150,8 +163,22 @@ async function runRole(command, role, password, client) {
   return 0
 }
 
+async function runReplay({ app, messageId, applyReplay }, client) {
+  const dead = await listDead({ client, app, messageId })
+  console.log(`[bus-replay] consegne scartate di ${app}${messageId ? ` (messaggio ${messageId})` : ''}: ${dead.length}`)
+  console.log(formatDead(dead))
+  if (!applyReplay) {
+    if (dead.length) console.log('\n[bus-replay] prova: nulla rimesso in coda. Per rigiocare, dopo aver corretto la causa: --apply')
+    return 0
+  }
+  const replayed = await replay({ client, app, messageId })
+  console.log(`\n[bus-replay] ${replayed.length} consegne rimesse in coda; ${app} avvisata.`)
+  return 0
+}
+
 async function main(argv) {
-  const { command, env, role } = parseArgs(argv)
+  const parsed = parseArgs(argv)
+  const { command, env, role } = parsed
   let password
   if (role) {
     checkRole(role)
@@ -173,6 +200,7 @@ async function main(argv) {
   client.on('error', (err) => console.error(`[db] connessione interrotta: ${err.message}`))
   await client.connect()
   try {
+    if (parsed.app) return await runReplay(parsed, client)
     return role ? await runRole(command, role, password, client) : await run(command, client)
   } finally {
     await client.end()

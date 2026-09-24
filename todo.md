@@ -1048,3 +1048,107 @@ da scavalcare.
   alert e della risposta del bar, e i loro lettori sono il passo 7 in `../ComforTables/todo.md`.
 - **ComfortLogistics**: nulla da fare. La 0.8.0 non cambia niente di cio' che usa; l'effetto lo vedra' dal
   bus, perche' le sue richieste finalmente trovano qualcuno che le conserva.
+
+## Sessione 11 — Rigioco delle consegne scartate, test intermittente, copia del magazzino (2026-09-24)
+
+Richiesta dell'utente (da `../ComforTables/todo.md`, passo 9): versione **0.9.0** con tre cose; il tag lo fa
+l'utente. Permesso esplicito di modificare questo repository per questa versione.
+
+**Perche' il rigioco.** Il 23/09 ComforTables ha scoperto che il suo consumatore, dentro Strapi, riceveva i
+payload `jsonb` come testo: ogni messaggio finiva `dead` e l'entita' restava ferma dietro di lui, perche' `next()`
+salta tutto cio' che ha davanti un messaggio non concluso. L'intestazione di `0003` lo prevede («finche' non viene
+rispedita o scartata»), ma nessuna funzione lo fa: oggi servirebbe SQL a mano da amministratore.
+
+- [x] `0012_bus_replay.sql`: `bus.replay(app, messaggio?)` di `platform_admin`, **senza** permessi alle app e senza
+      SECURITY DEFINER: le consegne `dead` dell'app (o del solo messaggio) tornano `pending`, tentativi a zero,
+      `next_attempt_at = now()`, ultimo errore conservato; avviso `bus_<app>` per svegliare il consumatore. Il
+      blocco si chiude da solo al primo `ack` che non lascia consegne scadute, come oggi.
+- [x] Comando del runner `bus-replay <app> [--message <uuid>] --env <ambiente>`: di default **elenca** le
+      consegne `dead` (messaggio, argomento, entita', tentativi, errore); con `--apply` le rigioca.
+- [x] Test: dead → rigioco → consegnata e blocco chiuso; un solo messaggio; nessuna app puo' chiamarla; app
+      sconosciuta rifiutata.
+
+**Test intermittente** `probes.test.js` («cleanup dopo un'interruzione, con il pooler che riapre le sessioni
+terminate», visto il 19/09): diagnosi prima di toccarlo.
+
+- [x] Causa trovata e corretta nel test o nel codice, secondo cio' che risulta; prova sotto carico.
+
+**Copia del magazzino** (`data-migrations/logistics-copy`, ADR-0015 §15.13). Fonte: `tables` (vecchio magazzino di
+ComforTables, struttura reale dello staging nella fixture); destinazione: `logistics` (tabelle delle migrazioni di
+ComfortLogistics 0001-0006, copiate in una fixture). Un'unica transazione come amministratore: legge come
+`ct_app`, scrive come `cl_app` (`set local role`), nessun join tra schemi (invariante 2). Prova di default,
+`--apply` per confermare.
+
+- **Chi**: i titolari con dati di magazzino (giacenze, soglie, costi, fornitori, movimenti, riordini, alert
+  aperti, dosi o righe private). L'organizzazione viene da `tables.logistics_links`, che crea il provisioning della
+  Fase 2: un titolare con dati e **senza** riga ferma tutto, con l'elenco. `logistics.organizations` si crea come fa
+  ComfortLogistics al primo accesso (`insert … on conflict do nothing`).
+- **Unita'**: ComfortLogistics ha solo `g`, `ml`, `pz`, `mazzo`. `kg` → `g` e `l` → `ml` (×1000) per giacenze,
+  soglie, formati, movimenti, riordini, dosi; il costo medio si divide per lo stesso fattore, il costo di un
+  rifornimento no (e' un totale).
+- **Articoli**: uno per ingrediente (nome normalizzato come `lib/text.mjs` di ComfortLogistics), con
+  `ingredient_links` e `source_items`. Due ingredienti con lo stesso nome normalizzato: anomalia bloccante.
+- **Fornitori**: le righe di `suppliers`, piu' quelli nominati solo su ingredienti o movimenti (legati per nome
+  normalizzato, come oggi).
+- **Movimenti**: righe identiche (tipo, quantita', costo, causale, note, lotto se uuid, data), `stock_before` e
+  `stock_after` ricostruiti in catena; dove la catena del vecchio magazzino ha un buco (giacenza cambiata senza
+  movimento) si aggiunge un `adjustment` con causale `migration_alignment`, contato nel report. Movimenti a zero
+  omessi e contati. Riferimento all'item, all'ordine o al turno in `source_ref`.
+- **Riordini** → `purchase_orders`, con il movimento di ricezione.
+- **Ricette**: piatti con almeno una dose o una riga privata → `dish` (o `beverage` per le bevande avanzate), v1
+  `valid_from = -infinity`, `created_by = migration`, tutte le righe (anche senza dose); dose aggiunta → `addon`;
+  bevande semplici abbinate per nome a un ingrediente → `beverage` 1:1 (formato se c'e', altrimenti 1 pz, come lo
+  scarico di oggi). `unit_override` convertibile → convertito; non convertibile → anomalia bloccante.
+- **Alert** aperti (non archiviati, non chiusi dal rifornimento) → uno per articolo e tipo.
+- **Collegamento**: `logistics.links` e `tables.logistics_links` attivi.
+- **Verifiche bloccanti** prima del commit: giacenza e costo medio per articolo; catena dei movimenti coerente con la
+  giacenza; ricette riga per riga (articolo, dose, unita'); conteggi di fornitori, riordini e alert. Un titolare
+  gia' migrato si salta; un'organizzazione con dati creati a mano in ComfortLogistics ferma tutto.
+- [x] Script, README, `npm run data:logistics-copy`, test sul kit con la struttura reale di entrambe le parti.
+
+- [x] Versione 0.9.0 in `package.json` e lockfile; `CLAUDE.md` (stato e struttura); review e lezioni.
+
+### Review sessione 11
+
+Verifiche: **117 test** (erano 107), due giri di fila della suite completa senza cadute, lint pulito, nessun cluster
+ne' cartella temporanea rimasti.
+
+**Rigioco.** `0012` aggiunge `bus.replay(app, messaggio?)`: di `platform_admin`, senza SECURITY DEFINER, nessun
+permesso alle app (il test dei permessi di piattaforma lo verifica gia' per tutte le funzioni non pubbliche). Le
+consegne `dead` tornano `pending` con tentativi a zero, l'ultimo errore resta, `bus_<app>` sveglia il consumatore; il
+blocco lo chiude il primo `ack` come sempre. `npm run bus:replay -- <app> --env <ambiente>` di default elenca, con
+`--apply` rigioca. Scartare una consegna senza elaborarla non e' stato chiesto e non c'e'.
+
+**Test intermittente.** Non era il codice: il «pooler» finto riapre la sessione dall'evento `end` del client, in modo
+asincrono, e il test controllava subito dopo il `cleanup`. Sotto carico il tentativo non era finito (`refused` nullo),
+oppure finiva dopo l'eliminazione del ruolo con un altro codice (`28P01`). Riprodotto in modo deterministico
+ritardando la riapertura di 300 ms. Il test ora aspetta la fine del tentativo e prova la proprieta' vera: **nessuna
+riapertura riuscita**. Tre prove: verde normale, verde con la riapertura lenta, rosso con l'ordine sbagliato nel
+codice (terminazione prima di `NOLOGIN`: la sessione si riapre e il cleanup scade).
+
+**Copia del magazzino.** `data-migrations/logistics-copy`, secondo ADR-0015 §15.13 e la specifica qui sopra. Test
+sulle strutture reali di entrambe le parti (ComforTables della fixture di staging, ComfortLogistics con le sue
+migrazioni 0001-0006 copiate in `tests/fixtures/logistics-schema-0006.sql`): copia completa di un ristorante di prova
+con tutti i casi, prova che non lascia niente, anomalie che fermano tutto, magazzino gia' creato a mano, seconda
+esecuzione saltata. Dodici prove rosse, tutte cadute. **Una era rimasta verde** («nessun allineamento»): la fixture
+non aveva buchi a meta' catena, solo alla fine. Aggiunto il caso, ora cade anche quella.
+
+Scelte dichiarate:
+- **l'organizzazione** viene da `tables.logistics_links` e `logistics.organizations` si crea come al primo accesso a
+  ComfortLogistics: la copia si potra' eseguire solo dopo la migrazione degli account;
+- **allineamenti**: dove la giacenza del vecchio magazzino era cambiata senza movimento, un `adjustment` con causale
+  `migration_alignment`, un millisecondo prima del movimento che lo rivela (l'ora vera non si conosce);
+- **bevande semplici**: abbinate per nome a un ingrediente come faceva il carico fatto, anche senza formato (1 pz)
+  quando l'ingrediente e' a pezzi: e' cio' che scaricava il vecchio magazzino;
+- **`unit_override`**: nell'interfaccia non si impostava mai (l'editor salvava la dose nell'unita' dell'ingrediente);
+  se c'e' ed e' della stessa grandezza si converte, altrimenti e' un'anomalia;
+- **disponibilita' e proiezioni** di ComfortLogistics non si scrivono: le ricalcola lui alla prima operazione di
+  magazzino dell'organizzazione.
+
+**Da sapere / prossimi passi**
+- **A te il rilascio**: commit e tag `v0.9.0`. Nessuna operazione git eseguita.
+- **Staging**: applicare `0012` con il runner (`db:dry-run`, poi `db:apply`) e, dopo il deploy del fix del
+  consumatore di ComforTables, `bus:replay -- comfortables --env staging` se ci sono consegne scartate.
+- **La copia del magazzino** si esegue dopo la migrazione degli account, con backup prima di `--apply`.
+- **ComforTables**: dopo il tag, `npm install` per passare la dipendenza a `#v0.9.0`.
+

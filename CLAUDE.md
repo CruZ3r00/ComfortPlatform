@@ -105,8 +105,9 @@ JavaScript **CommonJS senza build** (importabile da Strapi CJS e dai backend Fas
   `~/backups/comfort/staging-20260924T133959Z.dump`); la 0013 aspetta il deploy di ComforTables D (vedi la migrazione) (backup prima in `~/backups/comfort/`); `cl_app` e
   `cs_account`, `ct_app` e `cs_site` con login, password in `~/.config/comfortplatform/staging/<ruolo>.password`; libreria provata sui pooler reali (dettagli
   in `todo.md`, sessione 4);
-- **produzione**: nulla applicato. Prima serve il confronto tra ambienti (invariante 6), che non esiste ancora,
-  come il backup nel runner e gli script di migrazione dati.
+- **produzione**: nulla applicato. Il confronto read-only fra ambienti e' in
+  `db/runner/schema-compare-cli.js` (`docs/schema-compare.md`); va eseguito prima e dopo la replica.
+  Il backup nel runner non esiste ancora: prima di ogni migrazione resta obbligatorio il backup completo verificato.
 
 ## Struttura (ADR-0014 §14.6)
 
@@ -114,7 +115,7 @@ JavaScript **CommonJS senza build** (importabile da Strapi CJS e dai backend Fas
 |---|---|
 | `db/migrations/` | SQL di piattaforma `NNNN_nome.sql`, applicato dall'amministratore per ogni ambiente: `0001` registro, `0002` utenti, `0003` bus, `0004` job `pg_cron`, `0005` contratto v1, `0006` schema `logistics`, `0007` schema `account`, `0008` ComforTables in `tables`, `0009` `public` al sito, `0010`-`0011` iscrizioni di ComforTables al bus, `0012` rigioco delle consegne scartate, `0013` iscrizioni di ComforTables all'account |
 | `db/rollback/` | script inversi, uno per gruppo di migrazioni (`0009-0008_…`), e `apply.js` che li esegue in una transazione con il lock del runner; lo script toglie dal registro le migrazioni che annulla |
-| `db/runner/` | runner: `files.js` (nomi, checksum), `config.js` (variabili d'ambiente), `runner.js` (registro, piano, `inspect`, `apply`), `roles.js` (`setLogin`, `disableLogin`), `scram.js` (verificatore SCRAM), `replay.js` (consegne `dead`: elenco e rigioco), `cli.js` |
+| `db/runner/` | runner: `files.js` (nomi, checksum), `config.js` (variabili d'ambiente), `runner.js` (registro, piano, `inspect`, `apply`), `roles.js` (`setLogin`, `disableLogin`), `scram.js` (verificatore SCRAM), `replay.js` (consegne `dead`: elenco e rigioco), `cli.js`; `schema-compare.js` e `schema-compare-cli.js` per il confronto read-only |
 | `db/probes/` | prove tecniche su Supabase (search_path sul pooler, `session_user`, LISTEN/NOTIFY) con oggetti `probe_` creati ed eliminati a ogni esecuzione; da ripetere prima di ogni replica in un nuovo ambiente |
 | `bus/contract/` | contratto v1: `catalog.json` (fonte unica degli argomenti), `common.schema.json`, `<argomento>/v<N>.schema.json`, `index.js` (validazione Ajv). Export `comfort-platform/contract`. Regole in `bus/contract/README.md` |
 | `bus/client/` | libreria del bus: `publish.js`, `consumer.js` (ascolto verificato, svuotamento, retry, avvisi), `knex.js` (adattatore per le app su knex). Export `comfort-platform`. Uso in `bus/client/README.md` |

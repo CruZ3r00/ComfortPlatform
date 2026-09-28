@@ -22,6 +22,7 @@
     "lint": "eslint .",
     "db:list": "node db/runner/cli.js list",
     "db:dry-run": "node db/runner/cli.js dry-run",
+    "db:schema-compare": "node db/runner/schema-compare-cli.js",
     "db:apply": "node db/runner/cli.js apply",
     "db:role-login": "node db/runner/cli.js role-login",
     "db:role-disable": "node db/runner/cli.js role-disable",

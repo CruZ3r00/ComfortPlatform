@@ -1,5 +1,14 @@
 # Lessons
 
+## 2026-09-25 - Preparare la proprieta' dello schema con il ruolo che la possiede
+
+- ERRORE MIO: nel nuovo test del confronto schemi ho chiesto a `db_admin` di cambiare il proprietario di `public` in un database appena creato; il test si e' fermato prima del comportamento da verificare (`42501`, non proprietario dello schema).
+- REGOLA: nelle fixture PostgreSQL separare le operazioni di setup che richiedono il proprietario o il superutente dalle operazioni applicative eseguite con il ruolo limitato; verificare che un test rosso cada sulla proprieta' sotto esame, non sul setup.
+- ERRORE MIO NELLA PROVA LOCALE: `format('%I', $2)` non ha consentito a PostgreSQL di inferire il tipo del parametro; l'istruzione si e' fermata prima di cambiare alcun proprietario.
+- REGOLA: nei comandi di catalogo costruiti con `format` e parametri bind, dichiarare il tipo del parametro (`$2::text`) e provare il setup separatamente dal gate funzionale.
+- ERRORE MIO NELLA PROVA LOCALE: ho provato a cambiare il proprietario delle sequenze `OWNED BY` una per una; PostgreSQL lo rifiuta perché seguono la tabella.
+- REGOLA: nei ripristini di prova cambiare il proprietario della tabella e lasciare che le sequenze possedute la seguano; trattare separatamente solo sequenze indipendenti.
+
 Regole ricavate da correzioni dell'utente ed errori propri in ComfortPlatform. Le lezioni comuni al
 workspace restano in `../ComforTables/lessons.md`.
 

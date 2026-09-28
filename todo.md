@@ -1,5 +1,22 @@
 # Todo — ComfortPlatform
 
+## Confronto schemi prima della replica in produzione (2026-09-25)
+
+- [x] Aggiungere un comando read-only che acquisisce `pg_dump --schema-only` dei sei schemi applicativi per due ambienti, normalizza le sole righe variabili del dump e presenta un diff deterministico.
+- [x] Senza elenco approvato delle differenze, fermarsi su ogni differenza; con `--expected-diff <file>` accettare solo il diff esatto, e fermarsi se uno dei due ambienti cambia.
+- [x] Non mettere password in argv, output o file permanenti; rispettare TLS configurato e i nomi di ambiente obbligatori del runner.
+- [x] Provare su due database PostgreSQL 17 locali: strutture uguali con dati diversi, differenza inattesa, differenza esatta approvata, mutazione successiva rifiutata.
+- [x] Eseguire test e lint, documentare uso e review; non accedere a staging/produzione e non creare commit.
+
+### Review
+
+Il test `tests/schema-compare.test.js` usa due database effimeri PostgreSQL 17: differenze nei dati ignorate,
+schema diverso rifiutato, diff esatto accettato, mutazione successiva rifiutata. La prima versione del setup
+chiedeva a `db_admin` di cambiare il proprietario di `public` e cadeva con 42501; il setup ora usa il
+proprietario del database, come registrato in `lessons.md`. Test mirato: 2/2. Nessuna connessione agli ambienti.
+Uso e revisione del diff: `docs/schema-compare.md`. Suite completa 120/120, lint pulito,
+`git diff --check` da eseguire nella review finale. Nessuna connessione agli ambienti.
+
 ## Sessione 1 — Fondamenta e runner delle migrazioni (2026-09-16)
 
 Riferimenti: ADR-0014 §14.5-14.6 (`../ComforTables/docs/adr/0014-database-unico-e-bus-di-messaggi.md`),
@@ -1224,4 +1241,3 @@ dove l'account pubblica gia' `session_ended`, prima il deploy e poi la migrazion
 - **Staging:** non applicare `0013` finche' ComforTables con gli handler della sessione D non e' in funzione li'.
   L'account su staging pubblica gia' `session_ended`: senza handler le consegne a `comfortables` morirebbero, con
   blocco ed email di avviso.
-

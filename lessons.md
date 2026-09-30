@@ -156,3 +156,13 @@ workspace restano in `../ComforTables/lessons.md`.
   non ha eccezioni ed e' stato segnalato all'utente.
 - REGOLA: nessuna invocazione di `git`, neanche `--version` o dentro una riga composta. Prima di eseguire un comando
   lungo, rileggerlo cercando `git`.
+## 2026-09-28 — Verificare il target di patch in cataloghi ripetitivi
+
+- BUG MIO: una patch JSON su `subscribers` senza il nome del topic nel contesto ha aggiunto
+  ComforTables al primo topic del catalogo invece che a `account.entitlements_changed`.
+- REGOLA: per mutare strutture ripetute includere nel contesto una chiave univoca e controllare
+  immediatamente il diff della singola voce prima di proseguire.
+- BUG MIO: dopo la migrazione 0014 ho aggiornato il test mirato delle migrazioni ma non i test che
+  enumeravano tutte le iscrizioni e tutti i file applicati nel rollback. La suite completa ha fallito.
+- REGOLA: quando si aggiunge una migrazione, cercare tutti gli elenchi chiusi di file e di iscrizioni
+  nel repository, poi eseguire la suite completa oltre al test della nuova migrazione.

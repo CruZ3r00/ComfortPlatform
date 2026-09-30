@@ -383,6 +383,10 @@
       ],
       "subscribers": [
         {
+          "app": "comfortables",
+          "schema_version": 1
+        },
+        {
           "app": "logistics",
           "schema_version": 1
         }

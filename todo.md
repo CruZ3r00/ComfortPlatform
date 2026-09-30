@@ -1,5 +1,20 @@
 # Todo — ComfortPlatform
 
+## Fase 3 — Iscrizione ComforTables ai diritti account (2026-09-28)
+
+- [x] Verificare che il topic v1 sia gia' nel catalogo e che la 0013 non venga modificata dopo l'applicazione.
+- [x] Aggiungere la migrazione successiva per iscrivere ComforTables a `account.entitlements_changed` v1 solo dopo il deploy dell'handler.
+- [x] Allineare il catalogo del contratto, provare idempotenza e registro migrazioni su Postgres effimero; eseguire lint e review.
+
+### Review
+
+`0014_comfortables_entitlements_subscription.sql` aggiunta senza modificare la 0013 gia' applicabile.
+Il catalogo sottoscrive ComforTables alla v1 e il test delle migrazioni confronta lo stato finale
+del bus con quel catalogo: 7/7 passati su Postgres effimero, incluso secondo apply idempotente.
+I test di catalogo e rollback che enumerano le iscrizioni e le migrazioni sono allineati alla 0014.
+Suite completa 120/120 e test mirati delle migrazioni 7/7 passati; ESLint passato.
+Nessuna migrazione applicata a staging o produzione.
+
 ## Confronto schemi prima della replica in produzione (2026-09-25)
 
 - [x] Aggiungere un comando read-only che acquisisce `pg_dump --schema-only` dei sei schemi applicativi per due ambienti, normalizza le sole righe variabili del dump e presenta un diff deterministico.

@@ -105,6 +105,7 @@ test('catalogo: coerenza di produttore, destinatari, iscrizioni, chiavi e riserv
     'logistics.alerts.updated',
     'logistics.bar.preview_ready',
     'account.provisioning_requested',
+    'account.entitlements_changed',
     'account.password_changed',
     'account.organization_changed',
     'account.session_ended',
